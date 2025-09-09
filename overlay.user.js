@@ -458,7 +458,7 @@
         overlayCache.clear();
         imageCache.clear();
         filteredImageCache.clear();
-        // tileCache.clear(); // This was causing the intermittent zeroing of counts
+        tileCache.clear();
         diffCountCache.clear();
     }
 
@@ -921,6 +921,7 @@
                     );
                     const key = `${tileMatch.chunk1},${tileMatch.chunk2}`;
                     tileCache.set(key, imageData);
+                    updateColorDistributionUI();
                 } catch (e) {
                     console.error("Hail's OP: Failed to cache tile", e);
                 }
@@ -1732,6 +1733,7 @@
         });
 
         $("op-colors-refresh").addEventListener("click", async () => {
+            diffCountCache.clear();
             await updateColorDistributionUI();
         });
 
@@ -2336,7 +2338,6 @@
 
                     if (tileA === 0) {
                         counts[colorKey].below++;
-                        counts[colorKey].smart++; // A transparent pixel is also a "wrong" pixel
                     } else if (
                         ovR !== tileR ||
                         ovG !== tileG ||
