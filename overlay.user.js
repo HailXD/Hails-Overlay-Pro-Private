@@ -315,6 +315,13 @@
             img.src = url;
         });
     }
+    async function blobToImageData(blob) {
+        const img = await blobToImage(blob);
+        const canvas = createCanvas(img.width, img.height);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, img.width, img.height);
+    }
     async function getFilteredOverlayImage(ov) {
         if (!ov.imageBase64) return null;
         if (ov.visibleColorKeys == null) {
@@ -432,6 +439,8 @@
     const tooLargeOverlays = new Set();
     const imageCache = new Map();
     const filteredImageCache = new Map();
+    const tileCache = new Map();
+    const diffCountCache = new Map();
 
     function overlaySignature(ov) {
         const imgKey = ov.imageBase64
@@ -449,6 +458,8 @@
         overlayCache.clear();
         imageCache.clear();
         filteredImageCache.clear();
+        // tileCache.clear(); // This was causing the intermittent zeroing of counts
+        diffCountCache.clear();
     }
 
     async function buildOverlayDataForChunk(ov, targetChunk1, targetChunk2) {
@@ -904,6 +915,15 @@
                 if (enabledOverlays.length === 0) return response;
 
                 const originalBlob = await response.blob();
+                try {
+                    const imageData = await blobToImageData(
+                        originalBlob.slice()
+                    );
+                    const key = `${tileMatch.chunk1},${tileMatch.chunk2}`;
+                    tileCache.set(key, imageData);
+                } catch (e) {
+                    console.error("Hail's OP: Failed to cache tile", e);
+                }
                 if (originalBlob.size > 15 * 1024 * 1024) return response;
 
                 let finalBlob;
@@ -1390,6 +1410,7 @@
                           <span class="op-title-text">Color Toggle</span>
                       </div>
                       <div class="op-title-right">
+                           <button class="op-button" id="op-colors-refresh" title="Refresh counts" style="padding: 2px 6px; font-size: 12px;">Refresh</button>
                           <button class="op-chevron" id="op-collapse-colors" title="Collapse/Expand">▾</button>
                       </div>
                   </div>
@@ -1708,6 +1729,10 @@
             config.collapseColors = !config.collapseColors;
             saveConfig(["collapseColors"]);
             updateUI();
+        });
+
+        $("op-colors-refresh").addEventListener("click", async () => {
+            await updateColorDistributionUI();
         });
 
         $("op-colors-all").addEventListener("click", async () => {
@@ -2248,6 +2273,84 @@
         return counts;
     }
 
+    async function getDiffCounts(ov) {
+        if (!ov || !ov.imageBase64 || !ov.pixelUrl) return null;
+
+        const sig = overlaySignature(ov);
+        const tileCacheKeys = Array.from(tileCache.keys()).sort().join(";");
+        const cacheKey = `${ov.id}|${sig}|${tileCacheKeys}`;
+        if (diffCountCache.has(cacheKey)) return diffCountCache.get(cacheKey);
+
+        const img = await loadImage(ov.imageBase64);
+        const wImg = img.width,
+            hImg = img.height;
+
+        const canvas = createCanvas(wImg, hImg);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0);
+        const overlayImageData = ctx.getImageData(0, 0, wImg, hImg);
+        const overlayData = overlayImageData.data;
+
+        const base = extractPixelCoords(ov.pixelUrl);
+        if (!Number.isFinite(base.chunk1) || !Number.isFinite(base.chunk2))
+            return null;
+
+        const counts = {};
+
+        for (let y = 0; y < hImg; y++) {
+            for (let x = 0; x < wImg; x++) {
+                const ovIdx = (y * wImg + x) * 4;
+                if (overlayData[ovIdx + 3] === 0) continue;
+
+                const ovR = overlayData[ovIdx];
+                const ovG = overlayData[ovIdx + 1];
+                const ovB = overlayData[ovIdx + 2];
+                const colorKey = `${ovR},${ovG},${ovB}`;
+
+                if (!counts[colorKey])
+                    counts[colorKey] = { smart: 0, below: 0 };
+
+                const worldX =
+                    base.chunk1 * TILE_SIZE + base.posX + ov.offsetX + x;
+                const worldY =
+                    base.chunk2 * TILE_SIZE + base.posY + ov.offsetY + y;
+
+                const chunk1 = Math.floor(worldX / TILE_SIZE);
+                const chunk2 = Math.floor(worldY / TILE_SIZE);
+                const tileKey = `${chunk1},${chunk2}`;
+
+                if (tileCache.has(tileKey)) {
+                    const tileImageData = tileCache.get(tileKey);
+                    const tileData = tileImageData.data;
+                    const tileW = tileImageData.width;
+
+                    const tileX = ((worldX % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+                    const tileY = ((worldY % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+
+                    const tileIdx = (tileY * tileW + tileX) * 4;
+
+                    const tileR = tileData[tileIdx];
+                    const tileG = tileData[tileIdx + 1];
+                    const tileB = tileData[tileIdx + 2];
+                    const tileA = tileData[tileIdx + 3];
+
+                    if (tileA === 0) {
+                        counts[colorKey].below++;
+                        counts[colorKey].smart++; // A transparent pixel is also a "wrong" pixel
+                    } else if (
+                        ovR !== tileR ||
+                        ovG !== tileG ||
+                        ovB !== tileB
+                    ) {
+                        counts[colorKey].smart++;
+                    }
+                }
+            }
+        }
+        diffCountCache.set(cacheKey, counts);
+        return counts;
+    }
+
     async function updateColorDistributionUI() {
         const ov = getActiveOverlay();
         const section = document.getElementById("op-colors-section");
@@ -2263,6 +2366,7 @@
         listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">Loading...</div>`;
 
         const counts = await getOverlayColorDistribution(ov);
+        const diffs = (await getDiffCounts(ov)) || {};
 
         let visibleSet;
         if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
@@ -2288,13 +2392,18 @@
             const item = document.createElement("div");
             item.className = "op-dist-item" + (isPremium ? " premium" : "");
             item.title = `${name} (${key}): ${count} pixels`;
+
+            const belowCount = diffs[key]?.below || 0;
+            const smartCount = diffs[key]?.smart || 0;
+            const countText = `<span style="color: cyan;">${belowCount}</span>/<span style="color: red;">${smartCount}</span>/${count}`;
+
             item.innerHTML = `
             <input type="checkbox" data-key="${key}" ${
                 visibleSet.has(key) ? "checked" : ""
             } style="margin-right: 4px;">
             <div class="op-color-list-swatch" style="background-color: rgb(${key});"></div>
             <div class="op-color-list-name">${name}</div>
-            <div class="op-color-list-count">${count}</div>
+            <div class="op-color-list-count">${countText}</div>
         `;
             listEl.appendChild(item);
         }
