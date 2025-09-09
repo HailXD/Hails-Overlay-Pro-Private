@@ -18,6 +18,7 @@
 // @downloadURL  https://github.com/HailXD/wplace-d/raw/refs/heads/main/overlay.user.js
 // ==/UserScript==
 @endpreserve */
+
 (function () {
     "use strict";
 
