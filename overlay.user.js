@@ -505,6 +505,10 @@
         ctx.drawImage(img, drawX, drawY);
 
         const imageData = ctx.getImageData(isect.x, isect.y, isect.w, isect.h);
+        const rawDataClone =
+            config.overlayMode === "smart"
+                ? new Uint8ClampedArray(imageData.data)
+                : null;
         const data = imageData.data;
         const colorStrength = ov.opacity;
         const whiteStrength = 1 - colorStrength;
@@ -530,7 +534,12 @@
             }
         }
 
-        const result = { imageData, dx: isect.x, dy: isect.y };
+        const result = {
+            imageData,
+            dx: isect.x,
+            dy: isect.y,
+            rawData: rawDataClone,
+        };
         overlayCache.set(cacheKey, result);
         return result;
     }
@@ -717,6 +726,64 @@
 
         return await canvasToBlob(canvas);
     }
+    async function mergeOverlaysSmart(originalBlob, overlayDatas) {
+        if (!overlayDatas || overlayDatas.length === 0) return originalBlob;
+
+        const originalImage = await blobToImage(originalBlob);
+        const w = originalImage.width,
+            h = originalImage.height;
+
+        const canvas = createCanvas(w, h);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        ctx.drawImage(originalImage, 0, 0);
+        const canvasImageData = ctx.getImageData(0, 0, w, h);
+        const canvasData = canvasImageData.data;
+
+        for (const ovd of overlayDatas) {
+            if (!ovd || !ovd.rawData) continue;
+
+            const rawImageData = new ImageData(
+                ovd.rawData,
+                ovd.imageData.width,
+                ovd.imageData.height
+            );
+            const rawData = rawImageData.data;
+            const blendedData = ovd.imageData.data;
+
+            for (let y = 0; y < rawImageData.height; y++) {
+                for (let x = 0; x < rawImageData.width; x++) {
+                    const idx = (y * rawImageData.width + x) * 4;
+                    if (rawData[idx + 3] > 0) {
+                        const canvasX = ovd.dx + x;
+                        const canvasY = ovd.dy + y;
+
+                        if (
+                            canvasX >= 0 &&
+                            canvasX < w &&
+                            canvasY >= 0 &&
+                            canvasY < h
+                        ) {
+                            const canvasIdx = (canvasY * w + canvasX) * 4;
+                            if (
+                                rawData[idx] !== canvasData[canvasIdx] ||
+                                rawData[idx + 1] !== canvasData[canvasIdx + 1] ||
+                                rawData[idx + 2] !== canvasData[canvasIdx + 2]
+                            ) {
+                                canvasData[canvasIdx] = blendedData[idx];
+                                canvasData[canvasIdx + 1] = blendedData[idx + 1];
+                                canvasData[canvasIdx + 2] = blendedData[idx + 2];
+                                canvasData[canvasIdx + 3] = blendedData[idx + 3];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ctx.putImageData(canvasImageData, 0, 0);
+        return await canvasToBlob(canvas);
+    }
 
     async function composeMinifiedTile(originalBlob, overlayDatas) {
         if (!overlayDatas || overlayDatas.length === 0) return originalBlob;
@@ -778,6 +845,7 @@
         const needsHookMode =
             config.overlayMode === "behind" ||
             config.overlayMode === "above" ||
+            config.overlayMode === "smart" ||
             config.overlayMode === "minify";
         return (
             needsHookMode && (hasImage || placing) && config.overlays.length > 0
@@ -825,7 +893,7 @@
             }
 
             const tileMatch = matchTileUrl(urlStr);
-            const validModes = ["behind", "above", "minify"];
+            const validModes = ["behind", "above", "smart", "minify"];
             if (!tileMatch || !validModes.includes(config.overlayMode))
                 return originalFetch(input, init);
 
@@ -874,15 +942,23 @@
                             )
                         );
                     }
-                    finalBlob = await (config.overlayMode === "behind"
-                        ? mergeOverlaysBehind(
-                              originalBlob,
-                              overlayDatas.filter(Boolean)
-                          )
-                        : mergeOverlaysAbove(
-                              originalBlob,
-                              overlayDatas.filter(Boolean)
-                          ));
+
+                    if (config.overlayMode === "smart") {
+                        finalBlob = await mergeOverlaysSmart(
+                            originalBlob,
+                            overlayDatas.filter(Boolean)
+                        );
+                    } else {
+                        finalBlob = await (config.overlayMode === "behind"
+                            ? mergeOverlaysBehind(
+                                  originalBlob,
+                                  overlayDatas.filter(Boolean)
+                              )
+                            : mergeOverlaysAbove(
+                                  originalBlob,
+                                  overlayDatas.filter(Boolean)
+                              ));
+                    }
                 }
 
                 const headers = new Headers(response.headers);
@@ -1586,7 +1662,7 @@
         });
 
         $("op-mode-toggle").addEventListener("click", () => {
-            const modes = ["behind", "above", "minify", "original"];
+            const modes = ["behind", "above", "smart", "minify", "original"];
             const current = modes.indexOf(config.overlayMode);
             config.overlayMode = modes[(current + 1) % modes.length];
             saveConfig(["overlayMode"]);
@@ -2105,6 +2181,7 @@
         const modeMap = {
             behind: "Overlay Behind",
             above: "Overlay Above",
+            smart: "Smart",
             minify: `Minified`,
             original: "Original",
         };
