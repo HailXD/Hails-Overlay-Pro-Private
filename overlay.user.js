@@ -1,3 +1,4 @@
+/* @preserve
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
@@ -16,7 +17,7 @@
 // @updateURL    https://github.com/HailXD/wplace-d/raw/refs/heads/main/overlay.user.js
 // @downloadURL  https://github.com/HailXD/wplace-d/raw/refs/heads/main/overlay.user.js
 // ==/UserScript==
-
+@endpreserve */
 (function () {
     "use strict";
 
