@@ -787,6 +787,61 @@
         ctx.putImageData(canvasImageData, 0, 0);
         return await canvasToBlob(canvas);
     }
+    async function mergeOverlaysDiff(originalBlob, overlayDatas) {
+        if (!overlayDatas || overlayDatas.length === 0) return originalBlob;
+
+        const originalImage = await blobToImage(originalBlob);
+        const w = originalImage.width,
+            h = originalImage.height;
+
+        const canvas = createCanvas(w, h);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        ctx.drawImage(originalImage, 0, 0);
+        const canvasImageData = ctx.getImageData(0, 0, w, h);
+        const canvasData = canvasImageData.data;
+        const canvasData32 = new Uint32Array(canvasData.buffer);
+
+        for (const ovd of overlayDatas) {
+            if (!ovd || !ovd.rawData) continue;
+
+            const rawData = ovd.rawData;
+            const blendedData = ovd.imageData.data;
+            const rawWidth = ovd.imageData.width;
+            const rawHeight = ovd.imageData.height;
+
+            const rawData32 = new Uint32Array(rawData.buffer);
+            const blendedData32 = new Uint32Array(blendedData.buffer);
+
+            for (let y = 0; y < rawHeight; y++) {
+                const canvasY = ovd.dy + y;
+                if (canvasY < 0 || canvasY >= h) continue;
+
+                for (let x = 0; x < rawWidth; x++) {
+                    const canvasX = ovd.dx + x;
+                    if (canvasX < 0 || canvasX >= w) continue;
+
+                    const idx = (y * rawWidth + x) * 4;
+                    if (rawData[idx + 3] > 0) {
+                        const canvasIdx = canvasY * w + canvasX;
+                        const canvasIdx32 = canvasIdx;
+                        const rawIdx32 = y * rawWidth + x;
+
+                        if (
+                            canvasData[canvasIdx * 4 + 3] > 0 &&
+                            rawData32[rawIdx32] !== canvasData32[canvasIdx32]
+                        ) {
+                            canvasData32[canvasIdx32] = blendedData32[rawIdx32];
+                        }
+                    }
+                }
+            }
+        }
+
+        ctx.putImageData(canvasImageData, 0, 0);
+        return await canvasToBlob(canvas);
+    }
+
 
     async function composeMinifiedTile(originalBlob, overlayDatas) {
         if (!overlayDatas || overlayDatas.length === 0) return originalBlob;
@@ -849,6 +904,7 @@
             config.overlayMode === "behind" ||
             config.overlayMode === "above" ||
             config.overlayMode === "smart" ||
+            config.overlayMode === "diff" ||
             config.overlayMode === "minify";
         return (
             needsHookMode && (hasImage || placing) && config.overlays.length > 0
@@ -896,7 +952,7 @@
             }
 
             const tileMatch = matchTileUrl(urlStr);
-            const validModes = ["behind", "above", "smart", "minify"];
+            const validModes = ["behind", "above", "smart", "diff", "minify"];
             if (!tileMatch || !validModes.includes(config.overlayMode))
                 return originalFetch(input, init);
 
@@ -958,6 +1014,11 @@
 
                     if (config.overlayMode === "smart") {
                         finalBlob = await mergeOverlaysSmart(
+                            originalBlob,
+                            overlayDatas.filter(Boolean)
+                        );
+                    } else if (config.overlayMode === "diff") {
+                        finalBlob = await mergeOverlaysDiff(
                             originalBlob,
                             overlayDatas.filter(Boolean)
                         );
@@ -1314,7 +1375,14 @@
           <div class="op-column">
               <div class="op-section">
                   <div class="op-row space">
-                      <button class="op-button" id="op-mode-toggle">Mode</button>
+                      <select class="op-select" id="op-mode-select" style="flex: 1;">
+                          <option value="behind">Overlay Behind</option>
+                          <option value="above">Overlay Above</option>
+                          <option value="smart">Smart</option>
+                          <option value="diff">Diff</option>
+                          <option value="minify">Minified</option>
+                          <option value="original">Original</option>
+                      </select>
                       <div class="op-row">
                           <span class="op-muted" id="op-place-label">Place overlay:</span>
                           <button class="op-button" id="op-autocap-toggle" title="Capture next clicked pixel as anchor">OFF</button>
@@ -1675,10 +1743,8 @@
             location.reload();
         });
 
-        $("op-mode-toggle").addEventListener("click", () => {
-            const modes = ["behind", "above", "smart", "minify", "original"];
-            const current = modes.indexOf(config.overlayMode);
-            config.overlayMode = modes[(current + 1) % modes.length];
+        $("op-mode-select").addEventListener("change", (e) => {
+            config.overlayMode = e.target.value;
             saveConfig(["overlayMode"]);
             ensureHook();
             updateUI();
@@ -2196,17 +2262,10 @@
         toggle.classList.toggle("logo-button", collapsed);
         toggle.title = collapsed ? "Expand" : "Collapse";
 
-        const modeBtn = $("op-mode-toggle");
-        const modeMap = {
-            behind: "Overlay Behind",
-            above: "Overlay Above",
-            smart: "Smart",
-            minify: `Minified`,
-            original: "Original",
-        };
-        modeBtn.textContent = `Mode: ${
-            modeMap[config.overlayMode] || "Original"
-        }`;
+        const modeSelect = $("op-mode-select");
+        if (modeSelect) {
+            modeSelect.value = config.overlayMode;
+        }
 
         const autoBtn = $("op-autocap-toggle");
         const placeLabel = $("op-place-label");
