@@ -512,6 +512,7 @@
         const data = imageData.data;
         const colorStrength = ov.opacity;
         const whiteStrength = 1 - colorStrength;
+        const whitePart = 255 * whiteStrength;
 
         for (let i = 0; i < data.length; i += 4) {
             if (data[i + 3] > 0) {
@@ -520,14 +521,12 @@
                     data[i + 1] = 0;
                     data[i + 2] = 255;
                 } else {
-                    data[i] = Math.round(
-                        data[i] * colorStrength + 255 * whiteStrength
-                    );
+                    data[i] = Math.round(data[i] * colorStrength + whitePart);
                     data[i + 1] = Math.round(
-                        data[i + 1] * colorStrength + 255 * whiteStrength
+                        data[i + 1] * colorStrength + whitePart
                     );
                     data[i + 2] = Math.round(
-                        data[i + 2] * colorStrength + 255 * whiteStrength
+                        data[i + 2] * colorStrength + whitePart
                     );
                 }
                 data[i + 3] = 255;
@@ -628,6 +627,7 @@
         const data = imageData.data;
         const colorStrength = ov.opacity;
         const whiteStrength = 1 - colorStrength;
+        const whitePart = 255 * whiteStrength;
         const center = Math.floor(scale / 2);
         const width = isect.w;
 
@@ -646,14 +646,12 @@
                     data[i + 1] = 0;
                     data[i + 2] = 255;
                 } else {
-                    data[i] = Math.round(
-                        data[i] * colorStrength + 255 * whiteStrength
-                    );
+                    data[i] = Math.round(data[i] * colorStrength + whitePart);
                     data[i + 1] = Math.round(
-                        data[i + 1] * colorStrength + 255 * whiteStrength
+                        data[i + 1] * colorStrength + whitePart
                     );
                     data[i + 2] = Math.round(
-                        data[i + 2] * colorStrength + 255 * whiteStrength
+                        data[i + 2] * colorStrength + whitePart
                     );
                 }
                 data[i + 3] = 255;
@@ -739,42 +737,34 @@
         ctx.drawImage(originalImage, 0, 0);
         const canvasImageData = ctx.getImageData(0, 0, w, h);
         const canvasData = canvasImageData.data;
+        const canvasData32 = new Uint32Array(canvasData.buffer);
 
         for (const ovd of overlayDatas) {
             if (!ovd || !ovd.rawData) continue;
 
-            const rawImageData = new ImageData(
-                ovd.rawData,
-                ovd.imageData.width,
-                ovd.imageData.height
-            );
-            const rawData = rawImageData.data;
+            const rawData = ovd.rawData;
             const blendedData = ovd.imageData.data;
+            const rawWidth = ovd.imageData.width;
+            const rawHeight = ovd.imageData.height;
 
-            for (let y = 0; y < rawImageData.height; y++) {
-                for (let x = 0; x < rawImageData.width; x++) {
-                    const idx = (y * rawImageData.width + x) * 4;
+            const rawData32 = new Uint32Array(rawData.buffer);
+            const blendedData32 = new Uint32Array(blendedData.buffer);
+
+            for (let y = 0; y < rawHeight; y++) {
+                const canvasY = ovd.dy + y;
+                if (canvasY < 0 || canvasY >= h) continue;
+
+                for (let x = 0; x < rawWidth; x++) {
+                    const canvasX = ovd.dx + x;
+                    if (canvasX < 0 || canvasX >= w) continue;
+
+                    const idx = (y * rawWidth + x) * 4;
                     if (rawData[idx + 3] > 0) {
-                        const canvasX = ovd.dx + x;
-                        const canvasY = ovd.dy + y;
+                        const canvasIdx32 = canvasY * w + canvasX;
+                        const rawIdx32 = y * rawWidth + x;
 
-                        if (
-                            canvasX >= 0 &&
-                            canvasX < w &&
-                            canvasY >= 0 &&
-                            canvasY < h
-                        ) {
-                            const canvasIdx = (canvasY * w + canvasX) * 4;
-                            if (
-                                rawData[idx] !== canvasData[canvasIdx] ||
-                                rawData[idx + 1] !== canvasData[canvasIdx + 1] ||
-                                rawData[idx + 2] !== canvasData[canvasIdx + 2]
-                            ) {
-                                canvasData[canvasIdx] = blendedData[idx];
-                                canvasData[canvasIdx + 1] = blendedData[idx + 1];
-                                canvasData[canvasIdx + 2] = blendedData[idx + 2];
-                                canvasData[canvasIdx + 3] = blendedData[idx + 3];
-                            }
+                        if (rawData32[rawIdx32] !== canvasData32[canvasIdx32]) {
+                            canvasData32[canvasIdx32] = blendedData32[rawIdx32];
                         }
                     }
                 }
@@ -2615,7 +2605,7 @@
 
     function weightedNearest(r, g, b, palette) {
         let best = null,
-            bestDist = Infinity;
+            bestDistSq = Infinity;
         for (let i = 0; i < palette.length; i++) {
             const [pr, pg, pb] = palette[i];
             const rmean = (pr + r) / 2;
@@ -2625,9 +2615,9 @@
             const x = ((512 + rmean) * rdiff * rdiff) >> 8;
             const y = 4 * gdiff * gdiff;
             const z = ((767 - rmean) * bdiff * bdiff) >> 8;
-            const dist = Math.sqrt(x + y + z);
-            if (dist < bestDist) {
-                bestDist = dist;
+            const distSq = x + y + z;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
                 best = [pr, pg, pb];
             }
         }
@@ -3878,15 +3868,9 @@
         ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, targetW, targetH);
         const id = ctx.getImageData(0, 0, targetW, targetH);
         const data = id.data;
-        for (let i = 0; i < data.length; i += 4) {
-            if (data[i + 3] === 0) {
-                data[i] = 0;
-                data[i + 1] = 0;
-                data[i + 2] = 0;
-                data[i + 3] = 0;
-            } else {
-                data[i + 3] = 255;
-            }
+        // Harden alpha to remove semi-transparent pixels from resizing
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] > 0) data[i] = 255;
         }
         ctx.putImageData(id, 0, 0);
         const dataUrl = canvas.toDataURL("image/png");
