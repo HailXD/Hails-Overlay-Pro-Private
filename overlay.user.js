@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Wplace Overlay Pro
+// @name         Hail's OP
 // @namespace    http://tampermonkey.net/
 // @version      2.8.11
 // @author       shinkonet (Altered by Hail)
@@ -971,7 +971,7 @@
                     headers,
                 });
             } catch (e) {
-                console.error("Overlay Pro: Error processing tile", e);
+                console.error("Hail's OP: Error processing tile", e);
                 return originalFetch(input, init);
             }
         };
@@ -1027,14 +1027,14 @@
             if (typeof config.ccRealtime !== "boolean")
                 config.ccRealtime = false;
         } catch (e) {
-            console.error("Overlay Pro: Failed to load config", e);
+            console.error("Hail's OP: Failed to load config", e);
         }
     }
     async function saveConfig(keys = CONFIG_KEYS) {
         try {
             await Promise.all(keys.map((k) => gmSet(k, config[k])));
         } catch (e) {
-            console.error("Overlay Pro: Failed to save config", e);
+            console.error("Hail's OP: Failed to save config", e);
         }
     }
 
@@ -1290,7 +1290,7 @@
 
         panel.innerHTML = `
       <div class="op-header" id="op-header">
-          <h3>Overlay Pro</h3>
+          <h3>Hail's OP</h3>
           <div class="op-header-actions">
               <button class="op-hdr-btn" id="op-theme-toggle" title="Toggle theme">☀️/🌙</button>
               <button class="op-hdr-btn" id="op-refresh-btn" title="Refresh">⟲</button>
@@ -3974,7 +3974,7 @@
             }
 
             console.log(
-                "Overlay Pro: Initialized with Minify (fixed 3×) mode."
+                "Hail's OP: Initialized with Minify (fixed 3×) mode."
             );
         });
     }
