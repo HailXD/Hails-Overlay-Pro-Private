@@ -1376,10 +1376,10 @@
               <div class="op-section">
                   <div class="op-row space">
                       <select class="op-select" id="op-mode-select" style="flex: 1;">
-                          <option value="behind">Overlay Behind</option>
+                          <option value="behind" style="color: cyan;">Overlay Behind</option>
                           <option value="above">Overlay Above</option>
                           <option value="smart">Smart</option>
-                          <option value="diff">Diff</option>
+                          <option value="diff" style="color: red;">Diff</option>
                           <option value="minify">Minified</option>
                           <option value="original">Original</option>
                       </select>
