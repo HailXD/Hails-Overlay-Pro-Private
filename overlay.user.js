@@ -1026,6 +1026,7 @@
         ccPaidKeys: DEFAULT_PAID_KEYS.slice(),
         ccZoom: 1.0,
         ccRealtime: false,
+        colorSortBy: "errorCount",
     };
     const CONFIG_KEYS = Object.keys(config);
 
@@ -1427,8 +1428,15 @@
                           <span class="op-title-text">Color Toggle</span>
                       </div>
                       <div class="op-title-right">
+                           <select id="op-color-sort-select" class="op-select" style="padding: 2px 4px; font-size: 12px; margin-right: 6px;">
+                               <option value="errorCount">Sort: Errors</option>
+                               <option value="totalCount">Sort: Total</option>
+                               <option value="correctCount">Sort: Correct</option>
+                               <option value="belowCount">Sort: Below</option>
+                               <option value="smartCount">Sort: Smart</option>
+                           </select>
                            <button class="op-button" id="op-colors-refresh" title="Refresh counts" style="padding: 2px 6px; font-size: 12px;">Refresh</button>
-                          <button class="op-chevron" id="op-collapse-colors" title="Collapse/Expand">▾</button>
+                           <button class="op-chevron" id="op-collapse-colors" title="Collapse/Expand">▾</button>
                       </div>
                   </div>
                   <div id="op-colors-body">
@@ -1748,6 +1756,12 @@
 
         $("op-colors-refresh").addEventListener("click", async () => {
             diffCountCache.clear();
+            await updateColorDistributionUI();
+        });
+
+        $("op-color-sort-select").addEventListener("change", async (e) => {
+            config.colorSortBy = e.target.value;
+            await saveConfig(["colorSortBy"]);
             await updateColorDistributionUI();
         });
 
@@ -2243,6 +2257,11 @@
             colorsBody.style.display = config.collapseColors ? "none" : "block";
         if (colorsCz) colorsCz.textContent = config.collapseColors ? "▸" : "▾";
 
+        const sortSelect = $("op-color-sort-select");
+        if (sortSelect) {
+            sortSelect.value = config.colorSortBy || "errorCount";
+        }
+
         rebuildOverlayListUI();
         updateEditorUI();
         await updateColorDistributionUI();
@@ -2383,29 +2402,56 @@
             visibleSet = new Set(ov.visibleColorKeys);
         }
 
-        const sorted = Object.entries(counts).sort(([, a], [, b]) => b - a);
+        const colorData = Object.entries(counts).map(([key, count]) => {
+            const belowCount = diffs[key]?.below || 0;
+            const smartCount = diffs[key]?.smart || 0;
+            const errorCount = belowCount + smartCount;
+            const correctCount = count - errorCount;
+            return {
+                key,
+                name: WPLACE_NAMES[key] || key,
+                totalCount: count,
+                belowCount,
+                smartCount,
+                errorCount,
+                correctCount,
+            };
+        });
+
+        const sortBy = config.colorSortBy || "errorCount";
+        colorData.sort((a, b) => {
+            if (b[sortBy] === a[sortBy]) {
+                return b.totalCount - a.totalCount;
+            }
+            return b[sortBy] - a[sortBy];
+        });
+
         const paidKeys = new Set(
             WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
         );
 
         listEl.innerHTML = "";
-        if (sorted.length === 0) {
+        if (colorData.length === 0) {
             listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">No colors found.</div>`;
             return;
         }
 
-        for (const [key, count] of sorted) {
+        for (const data of colorData) {
+            const {
+                key,
+                name,
+                totalCount,
+                belowCount,
+                smartCount,
+                errorCount,
+                correctCount,
+            } = data;
             const isPremium = paidKeys.has(key);
-            const name = WPLACE_NAMES[key] || key;
             const item = document.createElement("div");
             item.className = "op-dist-item" + (isPremium ? " premium" : "");
-            item.title = `${name} (${key}): ${count} pixels`;
+            item.title = `${name} (${key}): ${totalCount} pixels`;
 
-            const belowCount = diffs[key]?.below || 0;
-            const smartCount = diffs[key]?.smart || 0;
-            const errorCount = belowCount + smartCount;
-            const correctCount = count - errorCount;
-            const countText = `<span style="color: lime;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: magenta;">${smartCount}</span>/<span style="color: red;">${errorCount}</span>/${count}`;
+            const countText = `<span style="color: lime;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: magenta;">${smartCount}</span>/<span style="color: red;">${errorCount}</span>/${totalCount}`;
 
             item.innerHTML = `
             <input type="checkbox" data-key="${key}" ${
