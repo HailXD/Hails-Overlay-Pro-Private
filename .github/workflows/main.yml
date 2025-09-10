@@ -46,7 +46,7 @@ jobs:
       # Replace the URL to point to minified version
       - name: Update self-reference URL
         run: |
-          sed -i 's|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay\.user\.js|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.min.user.js|g' min/overlay.min.user.js
+          sed -i 's|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay\.user\.js|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/min/overlay.min.user.js|g' min/overlay.min.user.js
 
       - name: Show what we'll commit (debug)
         run: |
