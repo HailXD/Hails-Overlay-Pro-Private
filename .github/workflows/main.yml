@@ -43,7 +43,12 @@ jobs:
           printf '%s\n\n' "$(cat /tmp/header.user.js)" > min/overlay.min.user.js
           cat /tmp/code.min.js >> min/overlay.min.user.js
 
-      - name: Show what we’ll commit (debug)
+      # Replace the URL to point to minified version
+      - name: Update self-reference URL
+        run: |
+          sed -i 's|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay\.user\.js|https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.min.user.js|g' min/overlay.min.user.js
+
+      - name: Show what we'll commit (debug)
         run: |
           echo "=== min/ tree ==="
           find min -type f -maxdepth 2 -print
