@@ -1,10 +1,8 @@
 name: Auto Minify
-
 on:
   push:
     paths-ignore:
-      - 'min/**'      # avoid loops when we commit minified files
-
+      - 'min/**'
 permissions:
   contents: write
 
@@ -14,31 +12,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # clean output folder so old files don't linger
       - name: Reset min/ directory
         run: rm -rf min && mkdir -p min
 
-      # Minify only top-level JS/CSS in the repo root to min/
       - name: Auto minify to min/
         uses: nizarmah/auto-minify@v3
         with:
           directory: .
           output: min
           overwrite: false
-          maxdepth: 0        # only the repo root
+          maxdepth: 1          # include files in repo root
+          js_engine: uglify-js # avoid babel-minify crash
 
-      # Keep the required `.user.js` suffix for userscripts
-      - name: Rename *.user.min.js -> *.min.user.js
+      # The action creates: min/overlay.user.js -> rename to overlay.min.user.js
+      - name: Rename *.user.js -> *.min.user.js
         shell: bash
         run: |
           shopt -s nullglob
-          for f in min/*.user.min.js; do
-            mv "$f" "${f/.user.min.js/.min.user.js}"
+          for f in min/*.user.js; do
+            mv "$f" "${f%.user.js}.min.user.js"
           done
 
+      - name: Show what we’ll commit (debug)
+        run: |
+          echo "=== min/ tree ==="
+          find min -type f -maxdepth 2 -print
+
       - name: Commit minified files
+        id: commit
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          repository: min          # commit from min/ (matches output)
-          file_pattern: '**/*'
+          file_pattern: 'min/**'
           commit_message: 'bot: Add auto minified files'
+
+      - name: Commit result
+        run: echo "changes_detected=${{ steps.commit.outputs.changes_detected }}"
