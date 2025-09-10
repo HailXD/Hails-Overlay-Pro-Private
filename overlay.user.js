@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.12
+// @version      2.8.13
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
