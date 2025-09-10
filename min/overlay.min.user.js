@@ -14,8 +14,8 @@
 // @grant        unsafeWindow
 // @connect      *
 // @run-at       document-start
-// @updateURL    https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.min.user.js
-// @downloadURL  https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.min.user.js
+// @updateURL    https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/min/overlay.min.user.js
+// @downloadURL  https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/min/overlay.min.user.js
 // ==/UserScript==
 @endpreserve */
 
