@@ -1771,7 +1771,7 @@
             ov.visibleColorKeys = null;
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            await updateColorDistributionUI();
+            // await updateColorDistributionUI();
         });
 
         $("op-colors-none").addEventListener("click", async () => {
@@ -1780,7 +1780,7 @@
             ov.visibleColorKeys = [];
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            await updateColorDistributionUI();
+            // await updateColorDistributionUI();
         });
 
         $("op-colors-free").addEventListener("click", async () => {
@@ -1794,7 +1794,7 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => freeKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            await updateColorDistributionUI();
+            // await updateColorDistributionUI();
         });
 
         $("op-colors-paid").addEventListener("click", async () => {
@@ -1808,7 +1808,7 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => paidKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            await updateColorDistributionUI();
+            // await updateColorDistributionUI();
         });
 
         $("op-colors-copy").addEventListener("click", async () => {
