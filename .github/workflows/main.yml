@@ -1,20 +1,44 @@
-on: [push]
+name: Auto Minify
+
+on:
+  push:
+    paths-ignore:
+      - 'min/**'      # avoid loops when we commit minified files
+
+permissions:
+  contents: write
 
 jobs:
   minify:
     runs-on: ubuntu-latest
     steps:
-      - name: check out the repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: auto minify the files
+      # clean output folder so old files don't linger
+      - name: Reset min/ directory
+        run: rm -rf min && mkdir -p min
+
+      # Minify only top-level JS/CSS in the repo root to min/
+      - name: Auto minify to min/
         uses: nizarmah/auto-minify@v3
         with:
           directory: .
           output: min
-          overwrite: true
+          overwrite: false
+          maxdepth: 0        # only the repo root
 
-      - name: auto commit the minified files
+      # Keep the required `.user.js` suffix for userscripts
+      - name: Rename *.user.min.js -> *.min.user.js
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for f in min/*.user.min.js; do
+            mv "$f" "${f/.user.min.js/.min.user.js}"
+          done
+
+      - name: Commit minified files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "bot: Add auto minified files"
+          repository: min          # commit from min/ (matches output)
+          file_pattern: '**/*'
+          commit_message: 'bot: Add auto minified files'
