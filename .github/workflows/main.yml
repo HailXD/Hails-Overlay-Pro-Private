@@ -1,8 +1,10 @@
 name: Auto Minify
+
 on:
   push:
     paths-ignore:
       - 'min/**'
+
 permissions:
   contents: write
 
@@ -15,35 +17,36 @@ jobs:
       - name: Reset min/ directory
         run: rm -rf min && mkdir -p min
 
+      # Minify only repo-root files into min/
       - name: Auto minify to min/
         uses: nizarmah/auto-minify@v3
         with:
           directory: .
           output: min
           overwrite: false
-          maxdepth: 1          # include files in repo root
-          js_engine: uglify-js # avoid babel-minify crash
+          maxdepth: 1
+          js_engine: uglify-js   # avoids babel-minify crash you hit earlier
 
-      # The action creates: min/overlay.user.js -> rename to overlay.min.user.js
-      - name: Rename *.user.js -> *.min.user.js
+      # Build the final userscript with preserved header
+      - name: Prepend userscript header and rename
         shell: bash
         run: |
-          shopt -s nullglob
-          for f in min/*.user.js; do
-            mv "$f" "${f%.user.js}.min.user.js"
-          done
+          # Grab the // ==UserScript== ... // ==/UserScript== block from the original
+          awk '/^\/\/[[:space:]]*==UserScript==/{f=1} f{print} /^\/\/[[:space:]]*==\/UserScript==/{exit}' overlay.user.js > /tmp/header.user.js
+
+          # Combine header + minified code into the desired filename
+          cat /tmp/header.user.js <(echo) min/overlay.user.js > min/overlay.min.user.js
+
+          # (optional) remove the intermediate file the action created
+          rm -f min/overlay.user.js
 
       - name: Show what we’ll commit (debug)
         run: |
           echo "=== min/ tree ==="
-          find min -type f -maxdepth 2 -print
+          find min -maxdepth 2 -type f -print
 
       - name: Commit minified files
-        id: commit
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: 'min/**'
           commit_message: 'bot: Add auto minified files'
-
-      - name: Commit result
-        run: echo "changes_detected=${{ steps.commit.outputs.changes_detected }}"
