@@ -3,7 +3,21 @@ name: Build Minified Userscript
 on:
   push:
     paths-ignore:
-      - 'min, else // ==UserScript== ... ==/UserScript==)
+      - 'min/**'
+
+permissions:
+  contents: write
+
+jobs:
+  minify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare output dir
+        run: mkdir -p min
+
+      # Extract header (prefer /* @preserve ... @endpreserve */, else // ==UserScript== ... ==/UserScript==)
       - name: Extract userscript header
         shell: bash
         run: |
