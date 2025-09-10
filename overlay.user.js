@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.13
+// @version      2.8.14
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -2404,7 +2404,7 @@
             const belowCount = diffs[key]?.below || 0;
             const smartCount = diffs[key]?.smart || 0;
             const correctCount = count - belowCount - smartCount;
-            const countText = `<span style="color: green;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: red;">${smartCount}</span>/${count}`;
+            const countText = `<span style="color: lime;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: red;">${smartCount}</span>/${count}`;
 
             item.innerHTML = `
             <input type="checkbox" data-key="${key}" ${
