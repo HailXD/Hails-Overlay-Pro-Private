@@ -35,7 +35,7 @@ jobs:
       # Minify the code (robust for modern JS)
       - name: Minify with esbuild
         run: |
-          npx esbuild overlay.user.js --minify --outfile=/tmp/code.min.js
+          npx esbuild overlay.user.js --minify --legal-comments=none --outfile=/tmp/code.min.js
 
       # Combine header + minified code into final userscript name
       - name: Assemble final userscript
