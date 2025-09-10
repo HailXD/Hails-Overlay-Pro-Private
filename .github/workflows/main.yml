@@ -1,52 +1,41 @@
-name: Auto Minify
+name: Build Minified Userscript
 
 on:
   push:
     paths-ignore:
-      - 'min/**'
-
-permissions:
-  contents: write
-
-jobs:
-  minify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Reset min/ directory
-        run: rm -rf min && mkdir -p min
-
-      # Minify only repo-root files into min/
-      - name: Auto minify to min/
-        uses: nizarmah/auto-minify@v3
-        with:
-          directory: .
-          output: min
-          overwrite: false
-          maxdepth: 1
-          js_engine: uglify-js   # avoids babel-minify crash you hit earlier
-
-      # Build the final userscript with preserved header
-      - name: Prepend userscript header and rename
+      - 'min, else // ==UserScript== ... ==/UserScript==)
+      - name: Extract userscript header
         shell: bash
         run: |
-          # Grab the // ==UserScript== ... // ==/UserScript== block from the original
-          awk '/^\/\/[[:space:]]*==UserScript==/{f=1} f{print} /^\/\/[[:space:]]*==\/UserScript==/{exit}' overlay.user.js > /tmp/header.user.js
+          set -euo pipefail
+          if grep -qE '^\s*/\*\s*@preserve' overlay.user.js; then
+            # capture the whole preserve block
+            sed -n '/^\s*\/\*\s*@preserve/,/@endpreserve \*\//p' overlay.user.js > /tmp/header.user.js
+          else
+            # capture just the ==UserScript== block
+            awk '/^\/\/[[:space:]]*==UserScript==/{f=1} f{print} /^\/\/[[:space:]]*==\/UserScript==/{exit}' overlay.user.js > /tmp/header.user.js
+          fi
+          # sanity check
+          test -s /tmp/header.user.js || (echo "Header not found" && exit 1)
 
-          # Combine header + minified code into the desired filename
-          cat /tmp/header.user.js <(echo) min/overlay.user.js > min/overlay.min.user.js
+      # Minify the code (robust for modern JS)
+      - name: Minify with esbuild
+        run: |
+          npx esbuild overlay.user.js --minify --outfile=/tmp/code.min.js
 
-          # (optional) remove the intermediate file the action created
-          rm -f min/overlay.user.js
+      # Combine header + minified code into final userscript name
+      - name: Assemble final userscript
+        run: |
+          printf '%s\n\n' "$(cat /tmp/header.user.js)" > min/overlay.min.user.js
+          cat /tmp/code.min.js >> min/overlay.min.user.js
 
       - name: Show what we’ll commit (debug)
         run: |
           echo "=== min/ tree ==="
-          find min -maxdepth 2 -type f -print
+          find min -type f -maxdepth 2 -print
 
-      - name: Commit minified files
+      - name: Commit minified userscript
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          file_pattern: 'min/**'
-          commit_message: 'bot: Add auto minified files'
+          file_pattern: 'min/overlay.min.user.js'
+          commit_message: 'bot: Add minified userscript'
