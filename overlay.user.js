@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.14
+// @version      2.8.15
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -2451,7 +2451,7 @@
             item.className = "op-dist-item" + (isPremium ? " premium" : "");
             item.title = `${name} (${key}): ${totalCount} pixels`;
 
-            const countText = `<span style="color: lime;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: magenta;">${smartCount}</span>/<span style="color: red;">${errorCount}</span>/${totalCount}`;
+            const countText = `<span style="color: lime;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: pink;">${smartCount}</span>/<span style="color: red;">${errorCount}</span>/${totalCount}`;
 
             item.innerHTML = `
             <input type="checkbox" data-key="${key}" ${
