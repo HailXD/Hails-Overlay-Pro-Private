@@ -2403,7 +2403,8 @@
 
             const belowCount = diffs[key]?.below || 0;
             const smartCount = diffs[key]?.smart || 0;
-            const countText = `<span style="color: cyan;">${belowCount}</span>/<span style="color: red;">${smartCount}</span>/${count}`;
+            const correctCount = count - belowCount - smartCount;
+            const countText = `<span style="color: green;">${correctCount}</span>/<span style="color: cyan;">${belowCount}</span>/<span style="color: red;">${smartCount}</span>/${count}`;
 
             item.innerHTML = `
             <input type="checkbox" data-key="${key}" ${
