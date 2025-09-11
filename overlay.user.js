@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.26
+// @version      2.8.27
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -2506,19 +2506,20 @@
                     correctCount,
                 };
             });
+            lastColorData = colorData;
         } else {
             colorData = lastColorData;
         }
         
         const sortBy = config.colorSortBy || "errorCount";
-        colorData.sort((a, b) => {
+        const sortedColorData = [...colorData].sort((a, b) => {
             if (b[sortBy] === a[sortBy]) {
                 return b.totalCount - a.totalCount;
             }
             return b[sortBy] - a[sortBy];
         });
 
-        lastColorData = colorData;
+        colorData = sortedColorData;
 
         let visibleSet;
         if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
