@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.19
+// @version      2.8.20
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -167,7 +167,69 @@
         [179, 185, 209],
     ];
     const WPLACE_NAMES = {
-        "0,0,0": "Black", "60,60,60": "Dark Gray", "120,120,120": "Gray", "210,210,210": "Light Gray", "255,255,255": "White", "96,0,24": "Deep Red", "237,28,36": "Red", "255,127,39": "Orange", "246,170,9": "Gold", "249,221,59": "Yellow", "255,250,188": "Light Yellow", "14,185,104": "Dark Green", "19,230,123": "Green", "135,255,94": "Light Green", "12,129,110": "Dark Teal", "16,174,166": "Teal", "19,225,190": "Light Teal", "96,247,242": "Cyan", "40,80,158": "Dark Blue", "64,147,228": "Blue", "107,80,246": "Indigo", "153,177,251": "Light Indigo", "120,12,153": "Dark Purple", "170,56,185": "Purple", "224,159,249": "Light Purple", "203,0,122": "Dark Pink", "236,31,128": "Pink", "243,141,169": "Light Pink", "104,70,52": "Dark Brown", "149,104,42": "Brown", "248,178,119": "Beige", "170,170,170": "Medium Gray", "165,14,30": "Dark Red", "250,128,114": "Light Red", "228,92,26": "Dark Orange", "156,132,49": "Dark Goldenrod", "197,173,49": "Goldenrod", "232,212,95": "Light Goldenrod", "74,107,58": "Dark Olive", "90,148,74": "Olive", "132,197,115": "Light Olive", "15,121,159": "Dark Cyan", "187,250,242": "Light Cyan", "125,199,255": "Light Blue", "77,49,184": "Dark Indigo", "74,66,132": "Dark Slate Blue", "122,113,196": "Slate Blue", "181,174,241": "Light Slate Blue", "155,82,73": "Dark Peach", "209,128,120": "Peach", "250,182,164": "Light Peach", "219,164,99": "Light Brown", "123,99,82": "Dark Tan", "156,132,107": "Tan", "214,181,148": "Light Tan", "209,128,81": "Dark Beige", "255,197,165": "Light Beige", "109,100,63": "Dark Stone", "148,140,107": "Stone", "205,197,158": "Light Stone", "51,57,65": "Dark Slate", "109,117,141": "Slate", "179,185,209": "Light Slate",
+        "0,0,0": "Black",
+        "60,60,60": "Dark Gray",
+        "120,120,120": "Gray",
+        "210,210,210": "Light Gray",
+        "255,255,255": "White",
+        "96,0,24": "Deep Red",
+        "237,28,36": "Red",
+        "255,127,39": "Orange",
+        "246,170,9": "Gold",
+        "249,221,59": "Yellow",
+        "255,250,188": "Light Yellow",
+        "14,185,104": "Dark Green",
+        "19,230,123": "Green",
+        "135,255,94": "Light Green",
+        "12,129,110": "Dark Teal",
+        "16,174,166": "Teal",
+        "19,225,190": "Light Teal",
+        "96,247,242": "Cyan",
+        "40,80,158": "Dark Blue",
+        "64,147,228": "Blue",
+        "107,80,246": "Indigo",
+        "153,177,251": "Light Indigo",
+        "120,12,153": "Dark Purple",
+        "170,56,185": "Purple",
+        "224,159,249": "Light Purple",
+        "203,0,122": "Dark Pink",
+        "236,31,128": "Pink",
+        "243,141,169": "Light Pink",
+        "104,70,52": "Dark Brown",
+        "149,104,42": "Brown",
+        "248,178,119": "Beige",
+        "170,170,170": "Medium Gray",
+        "165,14,30": "Dark Red",
+        "250,128,114": "Light Red",
+        "228,92,26": "Dark Orange",
+        "156,132,49": "Dark Goldenrod",
+        "197,173,49": "Goldenrod",
+        "232,212,95": "Light Goldenrod",
+        "74,107,58": "Dark Olive",
+        "90,148,74": "Olive",
+        "132,197,115": "Light Olive",
+        "15,121,159": "Dark Cyan",
+        "187,250,242": "Light Cyan",
+        "125,199,255": "Light Blue",
+        "77,49,184": "Dark Indigo",
+        "74,66,132": "Dark Slate Blue",
+        "122,113,196": "Slate Blue",
+        "181,174,241": "Light Slate Blue",
+        "155,82,73": "Dark Peach",
+        "209,128,120": "Peach",
+        "250,182,164": "Light Peach",
+        "219,164,99": "Light Brown",
+        "123,99,82": "Dark Tan",
+        "156,132,107": "Tan",
+        "214,181,148": "Light Tan",
+        "209,128,81": "Dark Beige",
+        "255,197,165": "Light Beige",
+        "109,100,63": "Dark Stone",
+        "148,140,107": "Stone",
+        "205,197,158": "Light Stone",
+        "51,57,65": "Dark Slate",
+        "109,117,141": "Slate",
+        "179,185,209": "Light Slate",
     };
     const DEFAULT_FREE_KEYS = WPLACE_FREE.map(([r, g, b]) => `${r},${g},${b}`);
     const DEFAULT_PAID_KEYS = [];
@@ -186,7 +248,9 @@
     }
     const page = unsafeWindow;
     function uid() {
-        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+        return `${Date.now().toString(36)}-${Math.random()
+            .toString(36)
+            .slice(2, 10)}`;
     }
     function uniqueName(base) {
         const names = new Set(
@@ -789,7 +853,6 @@
         return await canvasToBlob(canvas);
     }
 
-
     async function composeMinifiedTile(originalBlob, overlayDatas) {
         if (!overlayDatas || overlayDatas.length === 0) return originalBlob;
 
@@ -1182,7 +1245,7 @@
       .op-toast.show { opacity: 1; transform: translateY(0); }
       .op-toast-stack.op-dark .op-toast { background: var(--op-bg); border-color: var(--op-border); color: var(--op-text); }
 
-      /* Color Match Modal */
+      
       .op-cc-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-cc-backdrop.show { display: block; }
 
@@ -1245,7 +1308,7 @@
       .op-dist-item.premium .op-color-list-name { color: #eeff00ff; font-weight: bold; }
       .op-theme-dark .op-dist-item.premium .op-color-list-name { color: #fdd835; }
 
-      /* Resize Modal */
+      
       .op-rs-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-rs-backdrop.show { display: block; }
 
@@ -1443,8 +1506,8 @@
                       <div class="op-row" style="gap: 6px; flex-wrap: wrap;">
                           <button class="op-button" id="op-colors-all">All</button>
                           <button class="op-button" id="op-colors-none">None</button>
-                          <button class="op-button" id="op-colors-free">All Free</button>
-                          <button class="op-button" id="op-colors-paid">All Paid</button>
+                          <button class="op-button" id="op-colors-free">Free</button>
+                          <button class="op-button" id="op-colors-paid">Paid</button>
                           <button class="op-button" id="op-colors-copy">Copy</button>
                       </div>
                       <div class="op-list" id="op-colors-list" style="max-height: 480px; gap: 4px;"></div>
@@ -1528,8 +1591,7 @@
                     const wasActive = config.activeOverlayId === ov.id;
                     config.overlays.splice(idx, 1);
                     if (wasActive) {
-                        config.activeOverlayId =
-                            config.overlays[0]?.id || null;
+                        config.activeOverlayId = config.overlays[0]?.id || null;
                     }
                     await saveConfig(["overlays", "activeOverlayId"]);
                     clearOverlayCache();
@@ -1797,7 +1859,6 @@
             ov.visibleColorKeys = null;
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            // await updateColorDistributionUI();
         });
 
         $("op-colors-none").addEventListener("click", async () => {
@@ -1806,7 +1867,6 @@
             ov.visibleColorKeys = [];
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            // await updateColorDistributionUI();
         });
 
         $("op-colors-free").addEventListener("click", async () => {
@@ -1820,7 +1880,6 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => freeKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            // await updateColorDistributionUI();
         });
 
         $("op-colors-paid").addEventListener("click", async () => {
@@ -1834,7 +1893,6 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => paidKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            // await updateColorDistributionUI();
         });
 
         $("op-colors-copy").addEventListener("click", () => {
@@ -2361,8 +2419,10 @@
                     const tileData = tileImageData.data;
                     const tileW = tileImageData.width;
 
-                    const tileX = ((worldX % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
-                    const tileY = ((worldY % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+                    const tileX =
+                        ((worldX % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+                    const tileY =
+                        ((worldY % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
 
                     const tileIdx = (tileY * tileW + tileX) * 4;
 
@@ -4050,7 +4110,7 @@
         ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, targetW, targetH);
         const id = ctx.getImageData(0, 0, targetW, targetH);
         const data = id.data;
-        // Harden alpha to remove semi-transparent pixels from resizing
+
         for (let i = 3; i < data.length; i += 4) {
             if (data[i] > 0) data[i] = 255;
         }
@@ -4140,9 +4200,7 @@
                 onDomReady();
             }
 
-            console.log(
-                "Hail's OP: Initialized with Minify (fixed 3×) mode."
-            );
+            console.log("Hail's OP: Initialized with Minify (fixed 3×) mode.");
         });
     }
 
