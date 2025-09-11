@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.19
+// @version      2.8.20
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -139,7 +139,7 @@
       .op-toast.show { opacity: 1; transform: translateY(0); }
       .op-toast-stack.op-dark .op-toast { background: var(--op-bg); border-color: var(--op-border); color: var(--op-text); }
 
-      /* Color Match Modal */
+      
       .op-cc-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-cc-backdrop.show { display: block; }
 
@@ -202,7 +202,7 @@
       .op-dist-item.premium .op-color-list-name { color: #eeff00ff; font-weight: bold; }
       .op-theme-dark .op-dist-item.premium .op-color-list-name { color: #fdd835; }
 
-      /* Resize Modal */
+      
       .op-rs-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-rs-backdrop.show { display: block; }
 
@@ -383,8 +383,8 @@
                       <div class="op-row" style="gap: 6px; flex-wrap: wrap;">
                           <button class="op-button" id="op-colors-all">All</button>
                           <button class="op-button" id="op-colors-none">None</button>
-                          <button class="op-button" id="op-colors-free">All Free</button>
-                          <button class="op-button" id="op-colors-paid">All Paid</button>
+                          <button class="op-button" id="op-colors-free">Free</button>
+                          <button class="op-button" id="op-colors-paid">Paid</button>
                           <button class="op-button" id="op-colors-copy">Copy</button>
                       </div>
                       <div class="op-list" id="op-colors-list" style="max-height: 480px; gap: 4px;"></div>
