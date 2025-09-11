@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.16
+// @version      2.8.17
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -924,7 +924,6 @@
                     );
                     const key = `${tileMatch.chunk1},${tileMatch.chunk2}`;
                     tileCache.set(key, imageData);
-                    updateColorDistributionUI();
                 } catch (e) {
                     console.error("Hail's OP: Failed to cache tile", e);
                 }
@@ -1496,10 +1495,14 @@
       `;
             const [radio, checkbox, nameDiv, trashBtn] = item.children;
 
-            radio.addEventListener("change", () => {
+            radio.addEventListener("change", async () => {
+                const changed = config.activeOverlayId !== ov.id;
                 config.activeOverlayId = ov.id;
-                saveConfig(["activeOverlayId"]);
+                await saveConfig(["activeOverlayId"]);
                 updateUI();
+                if (changed) {
+                    await updateColorDistributionUI();
+                }
             });
             checkbox.addEventListener("change", () => {
                 ov.enabled = checkbox.checked;
@@ -1507,10 +1510,14 @@
                 clearOverlayCache();
                 ensureHook();
             });
-            nameDiv.addEventListener("click", () => {
+            nameDiv.addEventListener("click", async () => {
+                const changed = config.activeOverlayId !== ov.id;
                 config.activeOverlayId = ov.id;
-                saveConfig(["activeOverlayId"]);
+                await saveConfig(["activeOverlayId"]);
                 updateUI();
+                if (changed) {
+                    await updateColorDistributionUI();
+                }
             });
             trashBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
@@ -1518,13 +1525,19 @@
                     return;
                 const idx = config.overlays.findIndex((o) => o.id === ov.id);
                 if (idx >= 0) {
+                    const wasActive = config.activeOverlayId === ov.id;
                     config.overlays.splice(idx, 1);
-                    if (config.activeOverlayId === ov.id)
-                        config.activeOverlayId = config.overlays[0]?.id || null;
+                    if (wasActive) {
+                        config.activeOverlayId =
+                            config.overlays[0]?.id || null;
+                    }
                     await saveConfig(["overlays", "activeOverlayId"]);
                     clearOverlayCache();
                     ensureHook();
                     updateUI();
+                    if (wasActive) {
+                        await updateColorDistributionUI();
+                    }
                 }
             });
 
@@ -1553,6 +1566,7 @@
         clearOverlayCache();
         ensureHook();
         updateUI();
+        await updateColorDistributionUI();
         return ov;
     }
 
@@ -1567,6 +1581,7 @@
         await saveConfig(["autoCapturePixelUrl"]);
         ensureHook();
         updateUI();
+        await updateColorDistributionUI();
         showToast(
             `Image loaded. Placement mode ON -- click once to set anchor.`
         );
@@ -1588,6 +1603,7 @@
         await saveConfig(["autoCapturePixelUrl"]);
         ensureHook();
         updateUI();
+        await updateColorDistributionUI();
         showToast(
             `Local image loaded. Placement mode ON -- click once to set anchor.`
         );
@@ -1644,6 +1660,7 @@
             clearOverlayCache();
             ensureHook();
             updateUI();
+            await updateColorDistributionUI();
         }
         alert(
             `Import finished. Imported: ${imported}${
@@ -2281,7 +2298,6 @@
 
         rebuildOverlayListUI();
         updateEditorUI();
-        await updateColorDistributionUI();
 
         const exportBtn = $("op-export-overlay");
         const ov = getActiveOverlay();
@@ -4133,10 +4149,11 @@
         loadConfig().then(() => {
             ensureHook();
 
-            const onDomReady = () => {
+            const onDomReady = async () => {
                 injectStyles();
                 createUI();
                 applyTheme();
+                await updateColorDistributionUI();
             };
 
             if (document.readyState === "loading") {
