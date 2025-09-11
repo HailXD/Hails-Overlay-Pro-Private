@@ -1841,8 +1841,11 @@
             const ov = getActiveOverlay();
             if (!ov) return;
 
+            const header =
+                "Color,type,wrongEmpty,wrongDiff,wrong,correct,total";
+
             if (!lastColorData || lastColorData.length === 0) {
-                copyText("Color,type,correct,wrong,total")
+                copyText(header)
                     .then(() => showToast("No color data to copy."))
                     .catch(() => showToast("Failed to copy."));
                 return;
@@ -1851,8 +1854,6 @@
             const paidKeys = new Set(
                 WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
-
-            const header = "Color,type,correct,wrong,total";
 
             const rows = lastColorData.map((data) => {
                 const {
@@ -1865,8 +1866,7 @@
                     correctCount,
                 } = data;
                 const type = paidKeys.has(key) ? "P" : "F";
-                const wrong = `${belowCount}/${smartCount}/${errorCount}`;
-                return `${name},${type},${correctCount},${wrong},${totalCount}`;
+                return `${name},${type},${belowCount},${smartCount},${errorCount},${correctCount},${totalCount}`;
             });
 
             const textToCopy = [header, ...rows].join("\n");
