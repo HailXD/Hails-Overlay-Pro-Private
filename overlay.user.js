@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.24
+// @version      2.8.25
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1868,8 +1868,10 @@
             ov.visibleColorKeys = null;
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            updateUI();
-            await updateColorDistributionUI();
+            const listEl = document.getElementById("op-colors-list");
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
         });
 
         $("op-colors-none").addEventListener("click", async () => {
@@ -1878,38 +1880,42 @@
             ov.visibleColorKeys = [];
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            updateUI();
-            await updateColorDistributionUI();
+            const listEl = document.getElementById("op-colors-list");
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
         });
 
         $("op-colors-free").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const counts = await getOverlayColorDistribution(ov);
-            const allColorKeys = Object.keys(counts);
+            const allColorKeys = lastColorData.map(d => d.key);
             const freeKeys = new Set(
                 WPLACE_FREE.map(([r, g, b]) => `${r},${g},${b}`)
             );
             ov.visibleColorKeys = allColorKeys.filter((k) => freeKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            updateUI();
-            await updateColorDistributionUI();
+            const listEl = document.getElementById("op-colors-list");
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = freeKeys.has(cb.dataset.key);
+            });
         });
 
         $("op-colors-paid").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const counts = await getOverlayColorDistribution(ov);
-            const allColorKeys = Object.keys(counts);
+            const allColorKeys = lastColorData.map(d => d.key);
             const paidKeys = new Set(
                 WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
             ov.visibleColorKeys = allColorKeys.filter((k) => paidKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
-            updateUI();
-            await updateColorDistributionUI();
+            const listEl = document.getElementById("op-colors-list");
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = paidKeys.has(cb.dataset.key);
+            });
         });
 
         $("op-colors-copy").addEventListener("click", () => {
