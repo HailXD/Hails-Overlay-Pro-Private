@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.25
+// @version      2.8.26
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1859,7 +1859,7 @@
         $("op-color-sort-select").addEventListener("change", async (e) => {
             config.colorSortBy = e.target.value;
             await saveConfig(["colorSortBy"]);
-            await updateColorDistributionUI();
+            await updateColorDistributionUI(false);
         });
 
         $("op-colors-all").addEventListener("click", async () => {
@@ -2470,46 +2470,46 @@
         return counts;
     }
 
-    async function updateColorDistributionUI() {
+    async function updateColorDistributionUI(recalc = true) {
         const ov = getActiveOverlay();
         const section = document.getElementById("op-colors-section");
         if (!section) return;
 
         if (!ov || !ov.imageBase64) {
             section.style.display = "none";
+            lastColorData = [];
             return;
         }
         section.style.display = "flex";
 
         const listEl = document.getElementById("op-colors-list");
-        listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">Loading...</div>`;
+        let colorData;
 
-        const counts = await getOverlayColorDistribution(ov);
-        const diffs = (await getDiffCounts(ov)) || {};
+        if (recalc || !lastColorData || lastColorData.length === 0) {
+            listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">Loading...</div>`;
 
-        let visibleSet;
-        if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
-            visibleSet = new Set(Object.keys(counts));
+            const counts = await getOverlayColorDistribution(ov);
+            const diffs = (await getDiffCounts(ov)) || {};
+
+            colorData = Object.entries(counts).map(([key, count]) => {
+                const belowCount = diffs[key]?.below || 0;
+                const smartCount = diffs[key]?.smart || 0;
+                const errorCount = belowCount + smartCount;
+                const correctCount = count - errorCount;
+                return {
+                    key,
+                    name: WPLACE_NAMES[key] || key,
+                    totalCount: count,
+                    belowCount,
+                    smartCount,
+                    errorCount,
+                    correctCount,
+                };
+            });
         } else {
-            visibleSet = new Set(ov.visibleColorKeys);
+            colorData = lastColorData;
         }
-
-        const colorData = Object.entries(counts).map(([key, count]) => {
-            const belowCount = diffs[key]?.below || 0;
-            const smartCount = diffs[key]?.smart || 0;
-            const errorCount = belowCount + smartCount;
-            const correctCount = count - errorCount;
-            return {
-                key,
-                name: WPLACE_NAMES[key] || key,
-                totalCount: count,
-                belowCount,
-                smartCount,
-                errorCount,
-                correctCount,
-            };
-        });
-
+        
         const sortBy = config.colorSortBy || "errorCount";
         colorData.sort((a, b) => {
             if (b[sortBy] === a[sortBy]) {
@@ -2519,6 +2519,13 @@
         });
 
         lastColorData = colorData;
+
+        let visibleSet;
+        if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
+            visibleSet = new Set(colorData.map(d => d.key));
+        } else {
+            visibleSet = new Set(ov.visibleColorKeys);
+        }
 
         const totalCorrect = colorData.reduce(
             (sum, d) => sum + d.correctCount,
