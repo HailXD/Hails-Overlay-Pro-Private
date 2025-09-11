@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.15
+// @version      2.8.16
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1027,6 +1027,7 @@
         ccZoom: 1.0,
         ccRealtime: false,
         colorSortBy: "errorCount",
+        colorsScrollTop: 0,
     };
     const CONFIG_KEYS = Object.keys(config);
 
@@ -1685,6 +1686,14 @@
         return Promise.reject(new Error("Clipboard API not available"));
     }
 
+    let saveScrollTimeout;
+    function saveScrollPosition() {
+        clearTimeout(saveScrollTimeout);
+        saveScrollTimeout = setTimeout(() => {
+            saveConfig(["colorsScrollTop"]);
+        }, 250);
+    }
+
     function addEventListeners() {
         const $ = (id) => document.getElementById(id);
 
@@ -2042,6 +2051,14 @@
         }
 
         window.addEventListener("resize", () => {});
+
+        $("op-colors-list").addEventListener("scroll", () => {
+            const list = $("op-colors-list");
+            if (list) {
+                config.colorsScrollTop = list.scrollTop;
+                saveScrollPosition();
+            }
+        });
     }
 
     function enableDrag(panel) {
@@ -2488,6 +2505,10 @@
                 clearOverlayCache();
             });
         });
+
+        if (Number.isFinite(config.colorsScrollTop)) {
+            listEl.scrollTop = config.colorsScrollTop;
+        }
     }
 
     let cc = null;
