@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.22
+// @version      2.8.23
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1218,6 +1218,10 @@
       .op-button:disabled { opacity: 0.5; cursor: not-allowed; }
       .op-button.icon { width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
 
+      .op-color-btn { background: var(--op-btn); color: var(--op-text); border: 1px solid var(--op-btn-border); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+      .op-color-btn:hover { background: var(--op-btn-hover); }
+      .op-color-btn.active { background: var(--op-accent); color: white; }
+
       .op-input, .op-select { background: var(--op-bg); border: 1px solid var(--op-border); color: var(--op-text); border-radius: 8px; padding: 6px 8px; }
       .op-slider { width: 100%; }
 
@@ -1503,12 +1507,12 @@
                       </div>
                   </div>
                   <div id="op-colors-body">
-                      <div class="op-row" style="gap: 6px; flex-wrap: wrap;">
-                          <button class="op-button" id="op-colors-all">All</button>
-                          <button class="op-button" id="op-colors-none">None</button>
-                          <button class="op-button" id="op-colors-free">Free</button>
-                          <button class="op-button" id="op-colors-paid">Paid</button>
-                          <button class="op-button" id="op-colors-copy">Copy</button>
+                      <div class="op-button-group" style="gap: 6px; flex-wrap: wrap;">
+                          <button class="op-color-btn" id="op-colors-all">All</button>
+                          <button class="op-color-btn" id="op-colors-none">None</button>
+                          <button class="op-color-btn" id="op-colors-free">Free</button>
+                          <button class="op-color-btn" id="op-colors-paid">Paid</button>
+                          <button class="op-color-btn" id="op-colors-copy">Copy</button>
                       </div>
                       <div class="op-list" id="op-colors-list" style="max-height: 480px; gap: 4px;"></div>
                   </div>
@@ -1859,6 +1863,8 @@
             ov.visibleColorKeys = null;
             await saveConfig(["overlays"]);
             clearOverlayCache();
+            updateUI();
+            await updateColorDistributionUI();
         });
 
         $("op-colors-none").addEventListener("click", async () => {
@@ -1867,6 +1873,8 @@
             ov.visibleColorKeys = [];
             await saveConfig(["overlays"]);
             clearOverlayCache();
+            updateUI();
+            await updateColorDistributionUI();
         });
 
         $("op-colors-free").addEventListener("click", async () => {
@@ -1880,6 +1888,8 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => freeKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
+            updateUI();
+            await updateColorDistributionUI();
         });
 
         $("op-colors-paid").addEventListener("click", async () => {
@@ -1893,6 +1903,8 @@
             ov.visibleColorKeys = allColorKeys.filter((k) => paidKeys.has(k));
             await saveConfig(["overlays"]);
             clearOverlayCache();
+            updateUI();
+            await updateColorDistributionUI();
         });
 
         $("op-colors-copy").addEventListener("click", () => {
