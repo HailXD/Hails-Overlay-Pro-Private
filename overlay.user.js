@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.17
+// @version      2.8.19
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1837,66 +1837,41 @@
             // await updateColorDistributionUI();
         });
 
-        $("op-colors-copy").addEventListener("click", async () => {
+        $("op-colors-copy").addEventListener("click", () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const counts = await getOverlayColorDistribution(ov);
-            const paidKeys = new Set(
-                WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
-            );
-            const sorted = Object.entries(counts).sort(([, a], [, b]) => b - a);
 
-            let visibleSet;
-            if (
-                ov.visibleColorKeys === null ||
-                ov.visibleColorKeys === undefined
-            ) {
-                visibleSet = new Set(Object.keys(counts));
-            } else {
-                visibleSet = new Set(ov.visibleColorKeys);
-            }
-
-            const dataForCopy = sorted.map(([key, count]) => {
-                const isPremium = paidKeys.has(key);
-                const name = WPLACE_NAMES[key] || key;
-                const premiumStatus = isPremium ? "PAID" : "FREE";
-                return { key, name, premiumStatus, count: count.toString() };
-            });
-
-            if (dataForCopy.length === 0) {
-                copyText("```\n```")
+            if (!lastColorData || lastColorData.length === 0) {
+                copyText("Color,type,correct,wrong,total")
                     .then(() => showToast("No color data to copy."))
                     .catch(() => showToast("Failed to copy."));
                 return;
             }
 
-            const maxNameLen = Math.max(
-                ...dataForCopy.map((d) => d.name.length)
-            );
-            const maxStatusLen = Math.max(
-                ...dataForCopy.map((d) => d.premiumStatus.length)
-            );
-            const maxCountLen = Math.max(
-                ...dataForCopy.map((d) => d.count.length)
+            const paidKeys = new Set(
+                WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
 
-            const textToCopy = dataForCopy
-                .map(({ key, name, premiumStatus, count }) => {
-                    const isChecked = visibleSet.has(key);
-                    const checkMark = isChecked ? "x" : " ";
-                    const paddedName = name.padEnd(maxNameLen, " ");
-                    const paddedStatus = premiumStatus.padEnd(
-                        maxStatusLen,
-                        " "
-                    );
-                    const paddedCount = count.padEnd(maxCountLen, " ");
-                    return `- [${checkMark}] ${paddedName};${paddedStatus};${paddedCount};`;
-                })
-                .join("\n");
+            const header = "Color,type,correct,wrong,total";
 
-            const finalText = "```\n" + textToCopy + "\n```";
+            const rows = lastColorData.map((data) => {
+                const {
+                    key,
+                    name,
+                    totalCount,
+                    belowCount,
+                    smartCount,
+                    errorCount,
+                    correctCount,
+                } = data;
+                const type = paidKeys.has(key) ? "P" : "F";
+                const wrong = `${belowCount}/${smartCount}/${errorCount}`;
+                return `${name},${type},${correctCount},${wrong},${totalCount}`;
+            });
 
-            copyText(finalText)
+            const textToCopy = [header, ...rows].join("\n");
+
+            copyText(textToCopy)
                 .then(() => showToast("Color data copied to clipboard!"))
                 .catch(() => showToast("Failed to copy color data."));
         });
@@ -2309,6 +2284,7 @@
     }
 
     const colorDistributionCache = new Map();
+    let lastColorData = [];
     async function getOverlayColorDistribution(ov) {
         if (!ov || !ov.imageBase64) return {};
 
@@ -2458,6 +2434,8 @@
             }
             return b[sortBy] - a[sortBy];
         });
+
+        lastColorData = colorData;
 
         const paidKeys = new Set(
             WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
