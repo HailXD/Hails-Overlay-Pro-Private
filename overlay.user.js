@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.23
+// @version      2.8.24
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1515,6 +1515,11 @@
                           <button class="op-color-btn" id="op-colors-copy">Copy</button>
                       </div>
                       <div class="op-list" id="op-colors-list" style="max-height: 480px; gap: 4px;"></div>
+                      <div id="op-colors-summary" style="padding-top: 8px; border-top: 1px solid var(--op-border); margin-top: 8px; font-size: 12px;">
+                        <div class="op-row space" style="margin-bottom: 0.25rem;"><span>Total Correct:</span><span id="op-total-correct" style="font-weight: 600; color: lime;">0</span></div>
+                        <div class="op-row space" style="margin-bottom: 0.25rem;"><span>Total Wrong:</span><span id="op-total-wrong" style="font-weight: 600; color: red;">0</span></div>
+                        <div class="op-row space" style="margin-bottom: 0.25rem;"><span>Total Pixels:</span><span id="op-total-pixels" style="font-weight: 600;">0</span></div>
+                      </div>
                   </div>
               </div>
           </div>
@@ -2508,6 +2513,28 @@
         });
 
         lastColorData = colorData;
+
+        const totalCorrect = colorData.reduce(
+            (sum, d) => sum + d.correctCount,
+            0
+        );
+        const totalWrong = colorData.reduce(
+            (sum, d) => sum + d.errorCount,
+            0
+        );
+        const totalPixels = colorData.reduce(
+            (sum, d) => sum + d.totalCount,
+            0
+        );
+
+        const totalCorrectEl = document.getElementById("op-total-correct");
+        const totalWrongEl = document.getElementById("op-total-wrong");
+        const totalPixelsEl = document.getElementById("op-total-pixels");
+
+        if (totalCorrectEl)
+            totalCorrectEl.textContent = totalCorrect.toLocaleString();
+        if (totalWrongEl) totalWrongEl.textContent = totalWrong.toLocaleString();
+        if (totalPixelsEl) totalPixelsEl.textContent = totalPixels.toLocaleString();
 
         const paidKeys = new Set(
             WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
