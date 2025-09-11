@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.20
+// @version      2.8.21
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1210,7 +1210,7 @@
       .op-chevron { background: var(--op-btn); border: 1px solid var(--op-btn-border); border-radius: 6px; padding: 2px 6px; cursor: pointer; }
       .op-chevron:hover { background: var(--op-btn); }
 
-      .op-row { display: flex; align-items: center; gap: 8px; }
+      .op-row { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;}
       .op-row.space { justify-content: space-between; }
 
       .op-button { background: var(--op-btn); color: var(--op-text); border: 1px solid var(--op-btn-border); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
