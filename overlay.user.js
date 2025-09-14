@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.27
+// @version      2.8.28
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1249,7 +1249,7 @@
       .op-toast.show { opacity: 1; transform: translateY(0); }
       .op-toast-stack.op-dark .op-toast { background: var(--op-bg); border-color: var(--op-border); color: var(--op-text); }
 
-      
+
       .op-cc-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-cc-backdrop.show { display: block; }
 
@@ -1312,7 +1312,7 @@
       .op-dist-item.premium .op-color-list-name { color: #eeff00ff; font-weight: bold; }
       .op-theme-dark .op-dist-item.premium .op-color-list-name { color: #fdd835; }
 
-      
+
       .op-rs-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.45); display: none; }
       .op-rs-backdrop.show { display: block; }
 
@@ -1573,7 +1573,7 @@
                 await saveConfig(["activeOverlayId"]);
                 updateUI();
                 if (changed) {
-                    await updateColorDistributionUI();
+                    await updateColorDistributionUI(false);
                 }
             });
             checkbox.addEventListener("change", () => {
@@ -1588,7 +1588,7 @@
                 await saveConfig(["activeOverlayId"]);
                 updateUI();
                 if (changed) {
-                    await updateColorDistributionUI();
+                    await updateColorDistributionUI(false);
                 }
             });
             trashBtn.addEventListener("click", async (e) => {
@@ -2485,7 +2485,7 @@
         const listEl = document.getElementById("op-colors-list");
         let colorData;
 
-        if (recalc || !lastColorData || lastColorData.length === 0) {
+        if (recalc) {
             listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">Loading...</div>`;
 
             const counts = await getOverlayColorDistribution(ov);
@@ -2508,9 +2508,19 @@
             });
             lastColorData = colorData;
         } else {
-            colorData = lastColorData;
+            const counts = await getOverlayColorDistribution(ov);
+            colorData = Object.entries(counts).map(([key, count]) => ({
+                key,
+                name: WPLACE_NAMES[key] || key,
+                totalCount: count,
+                belowCount: 0,
+                smartCount: 0,
+                errorCount: 0,
+                correctCount: count,
+            }));
+            lastColorData = colorData;
         }
-        
+
         const sortBy = config.colorSortBy || "errorCount";
         const sortedColorData = [...colorData].sort((a, b) => {
             if (b[sortBy] === a[sortBy]) {
