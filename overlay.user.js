@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.28
+// @version      2.8.29
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -452,6 +452,7 @@
     const filteredImageCache = new LimitedMap(50);
     const tileCache = new LimitedMap(200);
     const diffCountCache = new LimitedMap(200);
+    const colorDataCache = new Map();
 
     function overlaySignature(ov) {
         const imgKey = ov.imageBase64
@@ -471,6 +472,7 @@
         filteredImageCache.clear();
         tileCache.clear();
         diffCountCache.clear();
+        colorDataCache.clear();
     }
 
     async function buildOverlayDataForChunk(ov, targetChunk1, targetChunk2) {
@@ -2487,10 +2489,8 @@
 
         if (recalc) {
             listEl.innerHTML = `<div class="op-muted" style="text-align:center; padding: 12px 0;">Loading...</div>`;
-
             const counts = await getOverlayColorDistribution(ov);
             const diffs = (await getDiffCounts(ov)) || {};
-
             colorData = Object.entries(counts).map(([key, count]) => {
                 const belowCount = diffs[key]?.below || 0;
                 const smartCount = diffs[key]?.smart || 0;
@@ -2506,18 +2506,23 @@
                     correctCount,
                 };
             });
+            colorDataCache.set(ov.id, colorData);
             lastColorData = colorData;
         } else {
-            const counts = await getOverlayColorDistribution(ov);
-            colorData = Object.entries(counts).map(([key, count]) => ({
-                key,
-                name: WPLACE_NAMES[key] || key,
-                totalCount: count,
-                belowCount: 0,
-                smartCount: 0,
-                errorCount: 0,
-                correctCount: count,
-            }));
+            if (colorDataCache.has(ov.id)) {
+                colorData = colorDataCache.get(ov.id);
+            } else {
+                const counts = await getOverlayColorDistribution(ov);
+                colorData = Object.entries(counts).map(([key, count]) => ({
+                    key,
+                    name: WPLACE_NAMES[key] || key,
+                    totalCount: count,
+                    belowCount: 0,
+                    smartCount: 0,
+                    errorCount: 0,
+                    correctCount: count,
+                }));
+            }
             lastColorData = colorData;
         }
 
