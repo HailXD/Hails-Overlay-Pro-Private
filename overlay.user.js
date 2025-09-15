@@ -1,3 +1,24 @@
+/* @preserve
+// ==UserScript==
+// @name         Hail's OP
+// @namespace    http://tampermonkey.net/
+// @version      2.8.30
+// @author       shinkonet (Altered by Hail)
+// @match        https://wplace.live/*
+// @license      GPLv3
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM.setValue
+// @grant        GM.getValue
+// @grant        GM_xmlhttpRequest
+// @grant        unsafeWindow
+// @connect      *
+// @run-at       document-start
+// @updateURL    https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.user.js
+// @downloadURL  https://github.com/HailXD/Hails-Overlay-Pro/raw/refs/heads/main/overlay.user.js
+// ==/UserScript==
+@endpreserve */
+
 (function () {
     "use strict";
 
@@ -211,6 +232,7 @@
         "179,185,209": "Light Slate",
     };
 
+    // Track paid color keys discovered from page UI (via svg.text-base-content/80 buttons)
     let highlightedPaidKeys = new Set();
     function scanAndCollectPaidKeysFromButtons() {
         const found = new Set();
@@ -219,36 +241,31 @@
                 WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
 
-            const svgs = document.querySelectorAll(
-                'svg[class~="text-base-content/80"]'
-            );
+            // Find all svgs with the class text-base-content/80
+            // Use an attribute selector to avoid CSS escape pitfalls
+            const svgs = document.querySelectorAll('svg[class~="text-base-content/80"]');
 
             for (const svg of svgs) {
-                const btn = svg.closest("button");
+                const btn = svg.closest('button');
                 if (!btn) continue;
 
-                let bg =
-                    btn.style?.background || btn.style?.backgroundColor || "";
+                // Prefer inline styles; fallback to computed style if absent
+                let bg = btn.style?.background || btn.style?.backgroundColor || '';
                 if (!bg) {
-                    bg =
-                        (
-                            btn.ownerDocument?.defaultView || window
-                        ).getComputedStyle(btn).backgroundColor || "";
+                    bg = (btn.ownerDocument?.defaultView || window)
+                        .getComputedStyle(btn)
+                        .backgroundColor || '';
                 }
 
-                const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i.exec(
-                    bg
-                );
+                const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i.exec(bg);
                 if (!m) continue;
 
-                const key = `${parseInt(m[1], 10)},${parseInt(
-                    m[2],
-                    10
-                )},${parseInt(m[3], 10)}`;
+                const key = `${parseInt(m[1], 10)},${parseInt(m[2], 10)},${parseInt(m[3], 10)}`;
                 if (paidKeys.has(key)) found.add(key);
             }
         } catch (e) {
-            console.debug("scanAndCollectPaidKeysFromButtons failed:", e);
+            // Non-fatal: DOM may not be ready or selectors may not match
+            console.debug('scanAndCollectPaidKeysFromButtons failed:', e);
         }
         highlightedPaidKeys = found;
         return found;
@@ -1893,7 +1910,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = true;
             });
         });
@@ -1905,7 +1922,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
         });
@@ -1913,7 +1930,7 @@
         $("op-colors-free").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const allColorKeys = lastColorData.map((d) => d.key);
+            const allColorKeys = lastColorData.map(d => d.key);
             const freeKeys = new Set(
                 WPLACE_FREE.map(([r, g, b]) => `${r},${g},${b}`)
             );
@@ -1921,7 +1938,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = freeKeys.has(cb.dataset.key);
             });
         });
@@ -1929,7 +1946,7 @@
         $("op-colors-paid").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const allColorKeys = lastColorData.map((d) => d.key);
+            const allColorKeys = lastColorData.map(d => d.key);
             const paidKeys = new Set(
                 WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
@@ -1937,7 +1954,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = paidKeys.has(cb.dataset.key);
             });
         });
@@ -2495,6 +2512,8 @@
     }
 
     async function updateColorDistributionUI(recalc = true) {
+        // Before building the list, scan the page for paid color button backgrounds
+        // and record keys whose text should be styled red.
         const redKeys = scanAndCollectPaidKeysFromButtons();
         const ov = getActiveOverlay();
         const section = document.getElementById("op-colors-section");
@@ -2561,7 +2580,7 @@
 
         let visibleSet;
         if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
-            visibleSet = new Set(colorData.map((d) => d.key));
+            visibleSet = new Set(colorData.map(d => d.key));
         } else {
             visibleSet = new Set(ov.visibleColorKeys);
         }
@@ -2570,8 +2589,14 @@
             (sum, d) => sum + d.correctCount,
             0
         );
-        const totalWrong = colorData.reduce((sum, d) => sum + d.errorCount, 0);
-        const totalPixels = colorData.reduce((sum, d) => sum + d.totalCount, 0);
+        const totalWrong = colorData.reduce(
+            (sum, d) => sum + d.errorCount,
+            0
+        );
+        const totalPixels = colorData.reduce(
+            (sum, d) => sum + d.totalCount,
+            0
+        );
 
         const totalCorrectEl = document.getElementById("op-total-correct");
         const totalWrongEl = document.getElementById("op-total-wrong");
@@ -2579,10 +2604,8 @@
 
         if (totalCorrectEl)
             totalCorrectEl.textContent = totalCorrect.toLocaleString();
-        if (totalWrongEl)
-            totalWrongEl.textContent = totalWrong.toLocaleString();
-        if (totalPixelsEl)
-            totalPixelsEl.textContent = totalPixels.toLocaleString();
+        if (totalWrongEl) totalWrongEl.textContent = totalWrong.toLocaleString();
+        if (totalPixelsEl) totalPixelsEl.textContent = totalPixels.toLocaleString();
 
         const paidKeys = new Set(
             WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
@@ -2619,10 +2642,10 @@
             <div class="op-color-list-name">${name}</div>
             <div class="op-color-list-count">${countText}</div>
         `;
-
-            const nameEl = item.querySelector(".op-color-list-name");
+            // If this color key was discovered via the paid-color button scan, color its text red
+            const nameEl = item.querySelector('.op-color-list-name');
             if (nameEl && redKeys.has(key)) {
-                nameEl.style.color = "red";
+                nameEl.style.color = 'red';
             }
             listEl.appendChild(item);
         }
@@ -3066,6 +3089,7 @@
         const listEl = document.getElementById("op-cc-color-list");
         if (!listEl) return;
 
+        // Refresh highlighted paid keys from page UI
         const redKeys = scanAndCollectPaidKeysFromButtons();
 
         const counts = cc.lastColorCounts;
@@ -3093,9 +3117,9 @@
         <div class="op-color-list-name">${name}</div>
         <div class="op-color-list-count">${count}</div>
       `;
-            const nameEl = item.querySelector(".op-color-list-name");
+            const nameEl = item.querySelector('.op-color-list-name');
             if (nameEl && redKeys.has(key)) {
-                nameEl.style.color = "red";
+                nameEl.style.color = 'red';
             }
             listEl.appendChild(item);
         }
