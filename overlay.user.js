@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.29
+// @version      2.8.30
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1498,11 +1498,11 @@
                       </div>
                       <div class="op-title-right">
                            <select id="op-color-sort-select" class="op-select" style="padding: 2px 4px; font-size: 12px; margin-right: 6px;">
-                               <option value="errorCount">Sort: Errors</option>
+                               <option value="errorCount">Sort: Wrong</option>
                                <option value="totalCount">Sort: Total</option>
                                <option value="correctCount">Sort: Correct</option>
                                <option value="belowCount">Sort: Below</option>
-                               <option value="smartCount">Sort: Smart</option>
+                               <option value="smartCount">Sort: Error</option>
                            </select>
                            <button class="op-button" id="op-colors-refresh" title="Refresh counts" style="padding: 2px 6px; font-size: 12px;">Refresh</button>
                            <button class="op-chevron" id="op-collapse-colors" title="Collapse/Expand">▾</button>
