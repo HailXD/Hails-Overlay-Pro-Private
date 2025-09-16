@@ -99,6 +99,73 @@
         });
     }
 
+    const WPLACE_ID = [
+        {
+            1: [0, 0, 0],
+            2: [60, 60, 60],
+            3: [120, 120, 120],
+            4: [210, 210, 210],
+            5: [255, 255, 255],
+            6: [96, 0, 24],
+            7: [237, 28, 36],
+            8: [255, 127, 39],
+            9: [246, 170, 9],
+            10: [249, 221, 59],
+            11: [255, 250, 188],
+            12: [14, 185, 104],
+            13: [19, 230, 123],
+            14: [135, 255, 94],
+            15: [12, 129, 110],
+            16: [16, 174, 166],
+            17: [19, 225, 190],
+            18: [40, 80, 158],
+            19: [64, 147, 228],
+            20: [96, 247, 242],
+            21: [107, 80, 246],
+            22: [153, 177, 251],
+            23: [120, 12, 153],
+            24: [170, 56, 185],
+            25: [224, 159, 249],
+            26: [203, 0, 122],
+            27: [236, 31, 128],
+            28: [243, 141, 169],
+            29: [104, 70, 52],
+            30: [149, 104, 42],
+            31: [248, 178, 119],
+            32: [170, 170, 170],
+            33: [165, 14, 30],
+            34: [250, 128, 114],
+            35: [228, 92, 26],
+            36: [214, 181, 148],
+            37: [156, 132, 49],
+            38: [197, 173, 49],
+            39: [232, 212, 95],
+            40: [74, 107, 58],
+            41: [90, 148, 74],
+            42: [132, 197, 115],
+            43: [15, 121, 159],
+            44: [187, 250, 242],
+            45: [125, 199, 255],
+            46: [77, 49, 184],
+            47: [74, 66, 132],
+            48: [122, 113, 196],
+            49: [181, 174, 241],
+            50: [219, 164, 99],
+            51: [209, 128, 81],
+            52: [255, 197, 165],
+            53: [155, 82, 73],
+            54: [209, 128, 120],
+            55: [250, 182, 164],
+            56: [123, 99, 82],
+            57: [156, 132, 107],
+            58: [51, 57, 65],
+            59: [109, 117, 141],
+            60: [179, 185, 209],
+            61: [109, 100, 63],
+            62: [148, 140, 107],
+            63: [205, 197, 158],
+        },
+    ];
     const WPLACE_FREE = [
         [0, 0, 0],
         [60, 60, 60],
@@ -243,29 +310,38 @@
 
             // Find all svgs with the class text-base-content/80
             // Use an attribute selector to avoid CSS escape pitfalls
-            const svgs = document.querySelectorAll('svg[class~="text-base-content/80"]');
+            const svgs = document.querySelectorAll(
+                'svg[class~="text-base-content/80"]'
+            );
 
             for (const svg of svgs) {
-                const btn = svg.closest('button');
+                const btn = svg.closest("button");
                 if (!btn) continue;
 
                 // Prefer inline styles; fallback to computed style if absent
-                let bg = btn.style?.background || btn.style?.backgroundColor || '';
+                let bg =
+                    btn.style?.background || btn.style?.backgroundColor || "";
                 if (!bg) {
-                    bg = (btn.ownerDocument?.defaultView || window)
-                        .getComputedStyle(btn)
-                        .backgroundColor || '';
+                    bg =
+                        (
+                            btn.ownerDocument?.defaultView || window
+                        ).getComputedStyle(btn).backgroundColor || "";
                 }
 
-                const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i.exec(bg);
+                const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i.exec(
+                    bg
+                );
                 if (!m) continue;
 
-                const key = `${parseInt(m[1], 10)},${parseInt(m[2], 10)},${parseInt(m[3], 10)}`;
+                const key = `${parseInt(m[1], 10)},${parseInt(
+                    m[2],
+                    10
+                )},${parseInt(m[3], 10)}`;
                 if (paidKeys.has(key)) found.add(key);
             }
         } catch (e) {
             // Non-fatal: DOM may not be ready or selectors may not match
-            console.debug('scanAndCollectPaidKeysFromButtons failed:', e);
+            console.debug("scanAndCollectPaidKeysFromButtons failed:", e);
         }
         highlightedPaidKeys = found;
         return found;
@@ -1911,7 +1987,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
                 cb.checked = true;
             });
         });
@@ -1923,7 +1999,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
                 cb.checked = false;
             });
         });
@@ -1931,7 +2007,7 @@
         $("op-colors-free").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const allColorKeys = lastColorData.map(d => d.key);
+            const allColorKeys = lastColorData.map((d) => d.key);
             const freeKeys = new Set(
                 WPLACE_FREE.map(([r, g, b]) => `${r},${g},${b}`)
             );
@@ -1939,7 +2015,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
                 cb.checked = freeKeys.has(cb.dataset.key);
             });
         });
@@ -1947,7 +2023,7 @@
         $("op-colors-paid").addEventListener("click", async () => {
             const ov = getActiveOverlay();
             if (!ov) return;
-            const allColorKeys = lastColorData.map(d => d.key);
+            const allColorKeys = lastColorData.map((d) => d.key);
             const paidKeys = new Set(
                 WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
             );
@@ -1955,7 +2031,7 @@
             await saveConfig(["overlays"]);
             clearOverlayCache();
             const listEl = document.getElementById("op-colors-list");
-            listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
                 cb.checked = paidKeys.has(cb.dataset.key);
             });
         });
@@ -2160,7 +2236,9 @@
                 return;
             }
             logPixelCoordinates(ov);
-            showToast(`Logged pixel coordinates for "${ov.name}" to the console.`);
+            showToast(
+                `Logged pixel coordinates for "${ov.name}" to the console.`
+            );
         });
 
         const resizeBtn = $("op-open-resize");
@@ -2524,7 +2602,9 @@
 
     async function logPixelCoordinates(ov) {
         if (!ov || !ov.imageBase64 || !ov.pixelUrl) {
-            showToast("Overlay is missing image or pixelUrl to log coordinates.");
+            showToast(
+                "Overlay is missing image or pixelUrl to log coordinates."
+            );
             return;
         }
 
@@ -2540,14 +2620,14 @@
 
         const logCoordinate = (x, y, label) => {
             if (x < 0 || x >= wImg || y < 0 || y >= hImg) {
-                console.log(`${label} Overlay Pixel: (${x}, ${y}) is out of bounds.`);
+                console.log(
+                    `${label} Overlay Pixel: (${x}, ${y}) is out of bounds.`
+                );
                 return;
             }
 
-            const worldX =
-                base.chunk1 * TILE_SIZE + base.posX + ov.offsetX + x;
-            const worldY =
-                base.chunk2 * TILE_SIZE + base.posY + ov.offsetY + y;
+            const worldX = base.chunk1 * TILE_SIZE + base.posX + ov.offsetX + x;
+            const worldY = base.chunk2 * TILE_SIZE + base.posY + ov.offsetY + y;
 
             const tileGX = Math.floor(worldX / TILE_SIZE);
             const tileGY = Math.floor(worldY / TILE_SIZE);
@@ -2560,7 +2640,9 @@
             );
         };
 
-        console.log(`--- Specific Pixel Coordinates for Overlay: ${ov.name} ---`);
+        console.log(
+            `--- Specific Pixel Coordinates for Overlay: ${ov.name} ---`
+        );
 
         // Top-left
         logCoordinate(0, 0, "Top-Left Corner:");
@@ -2654,7 +2736,7 @@
 
         let visibleSet;
         if (ov.visibleColorKeys === null || ov.visibleColorKeys === undefined) {
-            visibleSet = new Set(colorData.map(d => d.key));
+            visibleSet = new Set(colorData.map((d) => d.key));
         } else {
             visibleSet = new Set(ov.visibleColorKeys);
         }
@@ -2663,14 +2745,8 @@
             (sum, d) => sum + d.correctCount,
             0
         );
-        const totalWrong = colorData.reduce(
-            (sum, d) => sum + d.errorCount,
-            0
-        );
-        const totalPixels = colorData.reduce(
-            (sum, d) => sum + d.totalCount,
-            0
-        );
+        const totalWrong = colorData.reduce((sum, d) => sum + d.errorCount, 0);
+        const totalPixels = colorData.reduce((sum, d) => sum + d.totalCount, 0);
 
         const totalCorrectEl = document.getElementById("op-total-correct");
         const totalWrongEl = document.getElementById("op-total-wrong");
@@ -2678,8 +2754,10 @@
 
         if (totalCorrectEl)
             totalCorrectEl.textContent = totalCorrect.toLocaleString();
-        if (totalWrongEl) totalWrongEl.textContent = totalWrong.toLocaleString();
-        if (totalPixelsEl) totalPixelsEl.textContent = totalPixels.toLocaleString();
+        if (totalWrongEl)
+            totalWrongEl.textContent = totalWrong.toLocaleString();
+        if (totalPixelsEl)
+            totalPixelsEl.textContent = totalPixels.toLocaleString();
 
         const paidKeys = new Set(
             WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
@@ -2717,9 +2795,9 @@
             <div class="op-color-list-count">${countText}</div>
         `;
             // If this color key was discovered via the paid-color button scan, color its text red
-            const nameEl = item.querySelector('.op-color-list-name');
+            const nameEl = item.querySelector(".op-color-list-name");
             if (nameEl && redKeys.has(key)) {
-                nameEl.style.color = 'red';
+                nameEl.style.color = "red";
             }
             listEl.appendChild(item);
         }
@@ -3191,9 +3269,9 @@
         <div class="op-color-list-name">${name}</div>
         <div class="op-color-list-count">${count}</div>
       `;
-            const nameEl = item.querySelector('.op-color-list-name');
+            const nameEl = item.querySelector(".op-color-list-name");
             if (nameEl && redKeys.has(key)) {
-                nameEl.style.color = 'red';
+                nameEl.style.color = "red";
             }
             listEl.appendChild(item);
         }
