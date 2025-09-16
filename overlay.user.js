@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.30
+// @version      2.8.31
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1500,6 +1500,7 @@
                           <button class="op-button" id="op-download-overlay" title="Download this overlay image">Download</button>
                           <button class="op-button" id="op-open-resize" title="Resize the overlay image">Resize</button>
                           <button class="op-button" id="op-open-cc" title="Match colors to Wplace palette">Color Match</button>
+                          <button class="op-button" id="op-log-coords" title="Log pixel coordinates to console">Log Coords</button>
                       </div>
                       <div class="op-row"><span class="op-muted" id="op-coord-display"></span></div>
                       <div class="op-row" style="width: 100%; gap: 12px; padding: 6px 0;">
@@ -2152,6 +2153,16 @@
             openCCModal(ov);
         });
 
+        $("op-log-coords").addEventListener("click", () => {
+            const ov = getActiveOverlay();
+            if (!ov) {
+                showToast("No active overlay selected.");
+                return;
+            }
+            logPixelCoordinates(ov);
+            showToast(`Logged pixel coordinates for "${ov.name}" to the console.`);
+        });
+
         const resizeBtn = $("op-open-resize");
         if (resizeBtn) {
             resizeBtn.addEventListener("click", () => {
@@ -2509,6 +2520,69 @@
         }
         diffCountCache.set(cacheKey, counts);
         return counts;
+    }
+
+    async function logPixelCoordinates(ov) {
+        if (!ov || !ov.imageBase64 || !ov.pixelUrl) {
+            showToast("Overlay is missing image or pixelUrl to log coordinates.");
+            return;
+        }
+
+        const img = await loadImage(ov.imageBase64);
+        const wImg = img.width;
+        const hImg = img.height;
+
+        const base = extractPixelCoords(ov.pixelUrl);
+        if (!Number.isFinite(base.chunk1) || !Number.isFinite(base.chunk2)) {
+            showToast("Invalid pixelUrl in overlay.");
+            return;
+        }
+
+        const logCoordinate = (x, y, label) => {
+            if (x < 0 || x >= wImg || y < 0 || y >= hImg) {
+                console.log(`${label} Overlay Pixel: (${x}, ${y}) is out of bounds.`);
+                return;
+            }
+
+            const worldX =
+                base.chunk1 * TILE_SIZE + base.posX + ov.offsetX + x;
+            const worldY =
+                base.chunk2 * TILE_SIZE + base.posY + ov.offsetY + y;
+
+            const tileGX = Math.floor(worldX / TILE_SIZE);
+            const tileGY = Math.floor(worldY / TILE_SIZE);
+
+            const coordX = ((worldX % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+            const coordY = ((worldY % TILE_SIZE) + TILE_SIZE) % TILE_SIZE;
+
+            console.log(
+                `${label} Overlay Pixel: (${x}, ${y}) -> Tile: (${tileGX}, ${tileGY}), Coordinate in Tile: (${coordX}, ${coordY})`
+            );
+        };
+
+        console.log(`--- Specific Pixel Coordinates for Overlay: ${ov.name} ---`);
+
+        // Top-left
+        logCoordinate(0, 0, "Top-Left Corner:");
+        logCoordinate(2, 0, "Top-Left (+2 right):");
+        logCoordinate(0, 2, "Top-Left (+2 down):");
+
+        // Top-right
+        logCoordinate(wImg - 1, 0, "Top-Right Corner:");
+        logCoordinate(wImg - 3, 0, "Top-Right (-2 left):");
+        logCoordinate(wImg - 1, 2, "Top-Right (+2 down):");
+
+        // Bottom-left
+        logCoordinate(0, hImg - 1, "Bottom-Left Corner:");
+        logCoordinate(2, hImg - 1, "Bottom-Left (+2 right):");
+        logCoordinate(0, hImg - 3, "Bottom-Left (-2 up):");
+
+        // Bottom-right
+        logCoordinate(wImg - 1, hImg - 1, "Bottom-Right Corner:");
+        logCoordinate(wImg - 3, hImg - 1, "Bottom-Right (-2 left):");
+        logCoordinate(wImg - 1, hImg - 3, "Bottom-Right (-2 up):");
+
+        console.log(`--- End of Specific Pixel Coordinates ---`);
     }
 
     async function updateColorDistributionUI(recalc = true) {
