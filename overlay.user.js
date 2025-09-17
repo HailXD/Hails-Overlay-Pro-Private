@@ -1040,9 +1040,9 @@
                 let shouldPlace = false;
                 const mode = config.overlayMode;
 
-                if (mode === "behind" || mode === "above" || mode === "minify") {
+                if (mode === "above" || mode === "minify") {
                     shouldPlace = true;
-                } else if (mode === "smart" || mode === "diff") {
+                } else if (mode === "behind" || mode === "smart" || mode === "diff") {
                     if (!tileImageData) continue;
                     const tileData = tileImageData.data;
                     const tileW = tileImageData.width;
@@ -1054,8 +1054,12 @@
                     const tileA = tileData[tileIdx + 3];
 
                     const isDifferent = r !== tileR || g !== tileG || b !== tileB;
-                    console.log({ r, g, b, tileR, tileG, tileB, isDifferent, tileA, mode});
-                    if (mode === "smart" && (isDifferent || tileA === 0)) {
+                    if (mode === "behind") {
+                        if (tileA === 0) {
+                            shouldPlace = true;
+                        }
+                    }
+                    else if (mode === "smart" && (isDifferent || tileA === 0)) {
                         shouldPlace = true;
                     } else if (mode === "diff" && isDifferent && tileA > 0) {
                         shouldPlace = true;
