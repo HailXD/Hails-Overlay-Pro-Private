@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.34
+// @version      2.8.36
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1087,15 +1087,6 @@
             return distA - distB;
         });
 
-        // The closest pixel is our new anchor
-        const anchorPixel = placeablePixels[0];
-
-        // Sort all placeable pixels by distance from the new anchor
-        placeablePixels.sort((a, b) => {
-            const distA = Math.abs(a.x - anchorPixel.x) + Math.abs(a.y - anchorPixel.y);
-            const distB = Math.abs(b.x - anchorPixel.x) + Math.abs(b.y - anchorPixel.y);
-            return distA - distB;
-        });
 
         const pixelsToPlace = placeablePixels.slice(0, pixelCount);
 
