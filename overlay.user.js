@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.37
+// @version      2.8.38
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1080,8 +1080,8 @@
 
         // Sort placeable pixels by distance to the user's click
         placeablePixels.sort((a, b) => {
-            const distA = Math.abs(a.x - hijackedX) + Math.abs(a.y - hijackedY);
-            const distB = Math.abs(b.x - hijackedX) + Math.abs(b.y - hijackedY);
+            const distA = Math.max(Math.abs(a.x - hijackedX), Math.abs(a.y - hijackedY));
+            const distB = Math.max(Math.abs(b.x - hijackedX), Math.abs(b.y - hijackedY));
             return distA - distB;
         });
 
