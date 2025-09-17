@@ -1,4 +1,4 @@
-# Hail's OP
+# Hail's OP (Private)
 
 Source: https://greasyfork.org/en/scripts/545041-wplace-overlay-pro
 
