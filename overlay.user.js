@@ -1082,8 +1082,8 @@
 
         // Sort placeable pixels by distance to the user's click
         placeablePixels.sort((a, b) => {
-            const distA = Math.hypot(a.x - hijackedX, a.y - hijackedY);
-            const distB = Math.hypot(b.x - hijackedX, b.y - hijackedY);
+            const distA = Math.abs(a.x - hijackedX) + Math.abs(a.y - hijackedY);
+            const distB = Math.abs(b.x - hijackedX) + Math.abs(b.y - hijackedY);
             return distA - distB;
         });
 
@@ -1092,8 +1092,8 @@
 
         // Sort all placeable pixels by distance from the new anchor
         placeablePixels.sort((a, b) => {
-            const distA = Math.hypot(a.x - anchorPixel.x, a.y - anchorPixel.y);
-            const distB = Math.hypot(b.x - anchorPixel.x, b.y - anchorPixel.y);
+            const distA = Math.abs(a.x - anchorPixel.x) + Math.abs(a.y - anchorPixel.y);
+            const distB = Math.abs(b.x - anchorPixel.x) + Math.abs(b.y - anchorPixel.y);
             return distA - distB;
         });
 
