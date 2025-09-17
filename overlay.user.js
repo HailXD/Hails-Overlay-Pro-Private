@@ -166,79 +166,21 @@
             63: [205, 197, 158],
         },
     ];
-    const WPLACE_FREE = [
-        [0, 0, 0],
-        [60, 60, 60],
-        [120, 120, 120],
-        [210, 210, 210],
-        [255, 255, 255],
-        [96, 0, 24],
-        [237, 28, 36],
-        [255, 127, 39],
-        [246, 170, 9],
-        [249, 221, 59],
-        [255, 250, 188],
-        [14, 185, 104],
-        [19, 230, 123],
-        [135, 255, 94],
-        [12, 129, 110],
-        [16, 174, 166],
-        [19, 225, 190],
-        [96, 247, 242],
-        [40, 80, 158],
-        [64, 147, 228],
-        [107, 80, 246],
-        [153, 177, 251],
-        [120, 12, 153],
-        [170, 56, 185],
-        [224, 159, 249],
-        [203, 0, 122],
-        [236, 31, 128],
-        [243, 141, 169],
-        [104, 70, 52],
-        [149, 104, 42],
-        [248, 178, 119],
-    ];
-    const WPLACE_PAID = [
-        [170, 170, 170],
-        [165, 14, 30],
-        [250, 128, 114],
-        [228, 92, 26],
-        [214, 181, 148],
-        [156, 132, 49],
-        [197, 173, 49],
-        [232, 212, 95],
-        [74, 107, 58],
-        [90, 148, 74],
-        [132, 197, 115],
-        [15, 121, 159],
-        [187, 250, 242],
-        [125, 199, 255],
-        [77, 49, 184],
-        [74, 66, 132],
-        [122, 113, 196],
-        [181, 174, 241],
-        [219, 164, 99],
-        [209, 128, 81],
-        [255, 197, 165],
-        [155, 82, 73],
-        [209, 128, 120],
-        [250, 182, 164],
-        [123, 99, 82],
-        [156, 132, 107],
-        [51, 57, 65],
-        [109, 117, 141],
-        [179, 185, 209],
-        [109, 100, 63],
-        [148, 140, 107],
-        [205, 197, 158],
-    ];
-    const WPLACE_PALETTE = [...WPLACE_FREE, ...WPLACE_PAID];
+    const wplaceIdMap = WPLACE_ID[0];
+    const WPLACE_PALETTE = [];
     const WPLACE_COLOR_MAP = new Map();
-    // Use 1-based indexing for color IDs to match server expectations
-    WPLACE_PALETTE.forEach((rgb, i) => {
-        WPLACE_COLOR_MAP.set(rgb.join(","), i + 1);
-    });
+
+    // Create palette and color map from WPLACE_ID, ensuring correct order
+    const sortedIds = Object.keys(wplaceIdMap).map(Number).sort((a, b) => a - b);
+    for (const id of sortedIds) {
+        const rgb = wplaceIdMap[id];
+        WPLACE_PALETTE[id - 1] = rgb;
+        WPLACE_COLOR_MAP.set(rgb.join(','), id);
+    }
+
+    // Reconstruct FREE and PAID from palette for compatibility with the rest of the script
+    const WPLACE_FREE = WPLACE_PALETTE.slice(0, 31);
+    const WPLACE_PAID = WPLACE_PALETTE.slice(31);
 
     const WPLACE_NAMES = {
         "0,0,0": "Black",
@@ -272,38 +214,38 @@
         "104,70,52": "Dark Brown",
         "149,104,42": "Brown",
         "248,178,119": "Beige",
-        "170,170,170": "Medium Gray",
-        "165,14,30": "Dark Red",
-        "250,128,114": "Light Red",
-        "228,92,26": "Dark Orange",
-        "156,132,49": "Dark Goldenrod",
-        "197,173,49": "Goldenrod",
-        "232,212,95": "Light Goldenrod",
-        "74,107,58": "Dark Olive",
-        "90,148,74": "Olive",
-        "132,197,115": "Light Olive",
-        "15,121,159": "Dark Cyan",
-        "187,250,242": "Light Cyan",
-        "125,199,255": "Light Blue",
-        "77,49,184": "Dark Indigo",
-        "74,66,132": "Dark Slate Blue",
-        "122,113,196": "Slate Blue",
-        "181,174,241": "Light Slate Blue",
-        "155,82,73": "Dark Peach",
-        "209,128,120": "Peach",
-        "250,182,164": "Light Peach",
-        "219,164,99": "Light Brown",
-        "123,99,82": "Dark Tan",
-        "156,132,107": "Tan",
-        "214,181,148": "Light Tan",
-        "209,128,81": "Dark Beige",
-        "255,197,165": "Light Beige",
-        "109,100,63": "Dark Stone",
-        "148,140,107": "Stone",
-        "205,197,158": "Light Stone",
-        "51,57,65": "Dark Slate",
-        "109,117,141": "Slate",
-        "179,185,209": "Light Slate",
+        "170,170,170": "Medium Gray", // 32
+        "165,14,30": "Dark Red", // 33
+        "250,128,114": "Light Red", // 34
+        "228,92,26": "Dark Orange", // 35
+        "214,181,148": "Light Tan", // 36
+        "156,132,49": "Dark Goldenrod", // 37
+        "197,173,49": "Goldenrod", // 38
+        "232,212,95": "Light Goldenrod", // 39
+        "74,107,58": "Dark Olive", // 40
+        "90,148,74": "Olive", // 41
+        "132,197,115": "Light Olive", // 42
+        "15,121,159": "Dark Cyan", // 43
+        "187,250,242": "Light Cyan", // 44
+        "125,199,255": "Light Blue", // 45
+        "77,49,184": "Dark Indigo", // 46
+        "74,66,132": "Dark Slate Blue", // 47
+        "122,113,196": "Slate Blue", // 48
+        "181,174,241": "Light Slate Blue", // 49
+        "219,164,99": "Light Brown", // 50
+        "209,128,81": "Dark Beige", // 51
+        "255,197,165": "Light Beige", // 52
+        "155,82,73": "Dark Peach", // 53
+        "209,128,120": "Peach", // 54
+        "250,182,164": "Light Peach", // 55
+        "123,99,82": "Dark Tan", // 56
+        "156,132,107": "Tan", // 57
+        "51,57,65": "Dark Slate", // 58
+        "109,117,141": "Slate", // 59
+        "179,185,209": "Light Slate", // 60
+        "109,100,63": "Dark Stone", // 61
+        "148,140,107": "Stone", // 62
+        "205,197,158": "Light Stone" // 63
     };
 
     // Track paid color keys discovered from page UI (via svg.text-base-content/80 buttons)
@@ -1159,7 +1101,7 @@
         pixelsToPlace.forEach((p) => {
             const key = `${p.r},${p.g},${p.b}`;
             const colorId = WPLACE_COLOR_MAP.get(key);
-            if (colorId !== undefined) {
+            if (colorId !== undefined && colorId !== 0) {
                 newColors.push(colorId);
                 newCoords.push(p.x, p.y);
             }
