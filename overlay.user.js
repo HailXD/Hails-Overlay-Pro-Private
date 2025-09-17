@@ -1032,6 +1032,21 @@
         originalInput,
         originalInit
     ) {
+        let originalBody;
+        try {
+            if (typeof originalInit.body === "string") {
+                originalBody = JSON.parse(originalInit.body);
+            } else {
+                console.error(
+                    "Hail's OP: Hijack failed, request body is not a string."
+                );
+                return NATIVE_FETCH(originalInput, originalInit);
+            }
+        } catch (e) {
+            console.error("Hail's OP: Hijack failed to parse original body.", e);
+            return NATIVE_FETCH(originalInput, originalInit);
+        }
+
         const chunk1 = parseInt(tileMatch[1], 10);
         const chunk2 = parseInt(tileMatch[2], 10);
         const ov = getActiveOverlay();
@@ -1116,16 +1131,25 @@
             return NATIVE_FETCH(originalInput, originalInit);
         }
 
-        // Sort by y then x to get a consistent "first" pixel
+        const hijackedX = originalBody.coords[0];
+        const hijackedY = originalBody.coords[1];
+
+        // Sort placeable pixels by distance to the user's click
         placeablePixels.sort((a, b) => {
-            if (a.y !== b.y) return a.y - b.y;
-            return a.x - b.x;
+            const distA = Math.hypot(a.x - hijackedX, a.y - hijackedY);
+            const distB = Math.hypot(b.x - hijackedX, b.y - hijackedY);
+            return distA - distB;
         });
 
-        const p0 = placeablePixels[0];
-        const dist = (p) =>
-            Math.sqrt(Math.pow(p.x - p0.x, 2) + Math.pow(p.y - p0.y, 2));
-        placeablePixels.sort((a, b) => dist(a) - dist(b));
+        // The closest pixel is our new anchor
+        const anchorPixel = placeablePixels[0];
+
+        // Sort all placeable pixels by distance from the new anchor
+        placeablePixels.sort((a, b) => {
+            const distA = Math.hypot(a.x - anchorPixel.x, a.y - anchorPixel.y);
+            const distB = Math.hypot(b.x - anchorPixel.x, b.y - anchorPixel.y);
+            return distA - distB;
+        });
 
         const pixelsToPlace = placeablePixels.slice(0, pixelCount);
 
@@ -1143,21 +1167,6 @@
 
         if (newColors.length === 0) {
             showToast("Hijack: Could not map colors for placeable pixels.");
-            return NATIVE_FETCH(originalInput, originalInit);
-        }
-
-        let originalBody;
-        try {
-            if (typeof originalInit.body === "string") {
-                originalBody = JSON.parse(originalInit.body);
-            } else {
-                console.error(
-                    "Hail's OP: Hijack failed, request body is not a string."
-                );
-                return NATIVE_FETCH(originalInput, originalInit);
-            }
-        } catch (e) {
-            console.error("Hail's OP: Hijack failed to parse original body.", e);
             return NATIVE_FETCH(originalInput, originalInit);
         }
 
@@ -1656,6 +1665,13 @@
       .op-pan-grabbing { cursor: grabbing; }
 
       .op-rs-footer { padding: 10px 12px; border-top: 1px solid var(--op-border); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+      .op-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+      .op-switch input { opacity: 0; width: 0; height: 0; }
+      .op-switch-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--op-btn-border); transition: .2s; border-radius: 22px; }
+      .op-switch-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+      input:checked + .op-switch-slider { background-color: var(--op-accent); }
+      input:checked + .op-switch-slider:before { transform: translateX(16px); }
     `;
         document.head.appendChild(style);
     }
@@ -1699,18 +1715,21 @@
                           <button class="op-button" id="op-autocap-toggle" title="Capture next clicked pixel as anchor">OFF</button>
                       </div>
                   </div>
-                  <div class="op-row" style="padding: 4px 0;">
-                      <input type="checkbox" id="op-highlight-toggle" style="margin-left: 4px;">
+                  <div class="op-row space" style="padding: 4px 0;">
                       <label for="op-highlight-toggle" style="cursor:pointer;">Highlight pixels (pink)</label>
+                      <label class="op-switch">
+                          <input type="checkbox" id="op-highlight-toggle">
+                          <span class="op-switch-slider"></span>
+                      </label>
                   </div>
                    <div class="op-row space" style="padding: 4px 0;">
-                      <div>
-                          <input type="checkbox" id="op-hijack-toggle" style="margin-left: 4px;">
-                          <label for="op-hijack-toggle" style="cursor:pointer;">Hijack Requests</label>
-                      </div>
+                      <label for="op-hijack-toggle" style="cursor:pointer;">Hijack Requests</label>
                       <div class="op-row">
-                          <label for="op-pixel-count" class="op-muted">Pixel Count:</label>
-                          <input type="number" class="op-input" id="op-pixel-count" style="width: 60px;" min="1" step="1">
+                          <label class="op-switch">
+                              <input type="checkbox" id="op-hijack-toggle">
+                              <span class="op-switch-slider"></span>
+                          </label>
+                          <input class="op-input" id="op-pixel-count" style="width: 60px; margin-left: 8px;" min="1" step="1" title="Pixel Count">
                       </div>
                   </div>
               </div>
