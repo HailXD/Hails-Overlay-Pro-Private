@@ -1034,7 +1034,7 @@
                 const g = rawData[idx + 1];
                 const b = rawData[idx + 2];
                 const key = `${r},${g},${b}`;
-
+                
                 if (visibleSet && !visibleSet.has(key)) continue;
 
                 let shouldPlace = false;
@@ -1054,8 +1054,8 @@
                     const tileA = tileData[tileIdx + 3];
 
                     const isDifferent = r !== tileR || g !== tileG || b !== tileB;
-
-                    if (mode === "smart" && isDifferent) {
+                    console.log({ r, g, b, tileR, tileG, tileB, isDifferent, tileA, mode});
+                    if (mode === "smart" && (isDifferent || tileA === 0)) {
                         shouldPlace = true;
                     } else if (mode === "diff" && isDifferent && tileA > 0) {
                         shouldPlace = true;
