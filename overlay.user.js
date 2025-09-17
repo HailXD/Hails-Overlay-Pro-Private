@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.32
+// @version      2.8.33
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -233,6 +233,13 @@
         [109, 117, 141],
         [179, 185, 209],
     ];
+    const WPLACE_PALETTE = [...WPLACE_FREE, ...WPLACE_PAID];
+    const WPLACE_COLOR_MAP = new Map();
+    // Use 1-based indexing for color IDs to match server expectations
+    WPLACE_PALETTE.forEach((rgb, i) => {
+        WPLACE_COLOR_MAP.set(rgb.join(","), i + 1);
+    });
+
     const WPLACE_NAMES = {
         "0,0,0": "Black",
         "60,60,60": "Dark Gray",
@@ -1020,6 +1027,159 @@
         }, duration);
     }
 
+    async function handleHijackedPixelPost(
+        tileMatch,
+        originalInput,
+        originalInit
+    ) {
+        const chunk1 = parseInt(tileMatch[1], 10);
+        const chunk2 = parseInt(tileMatch[2], 10);
+        const ov = getActiveOverlay();
+        const pixelCount = config.hijackPixelCount || 1;
+
+        if (!ov || !ov.enabled || !ov.imageBase64 || !ov.pixelUrl) {
+            return NATIVE_FETCH(originalInput, originalInit);
+        }
+
+        const overlayData = await buildOverlayDataForChunk(ov, chunk1, chunk2);
+        if (!overlayData || !overlayData.rawData)
+            return NATIVE_FETCH(originalInput, originalInit);
+
+        const tileKey = `${chunk1},${chunk2}`;
+        const tileImageData = tileCache.get(tileKey);
+
+        const visibleSet = ov.visibleColorKeys
+            ? new Set(ov.visibleColorKeys)
+            : null;
+
+        const rawData = overlayData.rawData; // Original overlay colors
+        const rawWidth = overlayData.imageData.width;
+        const rawHeight = overlayData.imageData.height;
+
+        const placeablePixels = [];
+
+        for (let y = 0; y < rawHeight; y++) {
+            for (let x = 0; x < rawWidth; x++) {
+                const canvasX = overlayData.dx + x;
+                const canvasY = overlayData.dy + y;
+                if (
+                    canvasX < 0 ||
+                    canvasX >= TILE_SIZE ||
+                    canvasY < 0 ||
+                    canvasY >= TILE_SIZE
+                )
+                    continue;
+
+                const idx = (y * rawWidth + x) * 4;
+                if (rawData[idx + 3] === 0) continue;
+
+                const r = rawData[idx];
+                const g = rawData[idx + 1];
+                const b = rawData[idx + 2];
+                const key = `${r},${g},${b}`;
+
+                if (visibleSet && !visibleSet.has(key)) continue;
+
+                let shouldPlace = false;
+                const mode = config.overlayMode;
+
+                if (mode === "behind" || mode === "above" || mode === "minify") {
+                    shouldPlace = true;
+                } else if (mode === "smart" || mode === "diff") {
+                    if (!tileImageData) continue;
+                    const tileData = tileImageData.data;
+                    const tileW = tileImageData.width;
+                    const tileIdx = (canvasY * tileW + canvasX) * 4;
+
+                    const tileR = tileData[tileIdx];
+                    const tileG = tileData[tileIdx + 1];
+                    const tileB = tileData[tileIdx + 2];
+                    const tileA = tileData[tileIdx + 3];
+
+                    const isDifferent = r !== tileR || g !== tileG || b !== tileB;
+
+                    if (mode === "smart" && isDifferent) {
+                        shouldPlace = true;
+                    } else if (mode === "diff" && isDifferent && tileA > 0) {
+                        shouldPlace = true;
+                    }
+                }
+
+                if (shouldPlace) {
+                    placeablePixels.push({ x: canvasX, y: canvasY, r, g, b });
+                }
+            }
+        }
+
+        if (placeablePixels.length === 0) {
+            showToast("Hijack: No placeable pixels found for this tile.");
+            return NATIVE_FETCH(originalInput, originalInit);
+        }
+
+        // Sort by y then x to get a consistent "first" pixel
+        placeablePixels.sort((a, b) => {
+            if (a.y !== b.y) return a.y - b.y;
+            return a.x - b.x;
+        });
+
+        const p0 = placeablePixels[0];
+        const dist = (p) =>
+            Math.sqrt(Math.pow(p.x - p0.x, 2) + Math.pow(p.y - p0.y, 2));
+        placeablePixels.sort((a, b) => dist(a) - dist(b));
+
+        const pixelsToPlace = placeablePixels.slice(0, pixelCount);
+
+        const newColors = [];
+        const newCoords = [];
+
+        pixelsToPlace.forEach((p) => {
+            const key = `${p.r},${p.g},${p.b}`;
+            const colorId = WPLACE_COLOR_MAP.get(key);
+            if (colorId !== undefined) {
+                newColors.push(colorId);
+                newCoords.push(p.x, p.y);
+            }
+        });
+
+        if (newColors.length === 0) {
+            showToast("Hijack: Could not map colors for placeable pixels.");
+            return NATIVE_FETCH(originalInput, originalInit);
+        }
+
+        let originalBody;
+        try {
+            if (typeof originalInit.body === "string") {
+                originalBody = JSON.parse(originalInit.body);
+            } else {
+                console.error(
+                    "Hail's OP: Hijack failed, request body is not a string."
+                );
+                return NATIVE_FETCH(originalInput, originalInit);
+            }
+        } catch (e) {
+            console.error("Hail's OP: Hijack failed to parse original body.", e);
+            return NATIVE_FETCH(originalInput, originalInit);
+        }
+
+        const newData = {
+            ...originalBody, // Preserve t, fp, and any other properties
+            colors: newColors,
+            coords: newCoords,
+        };
+
+        const newBody = JSON.stringify(newData);
+        showToast(`Hijacking: Placing ${newColors.length} pixels.`);
+
+        const newInit = { ...originalInit, body: newBody };
+        // The browser will set the Content-Length header automatically.
+        // Deleting it if it exists avoids potential conflicts.
+        if (newInit.headers && newInit.headers["Content-Length"]) {
+            delete newInit.headers["Content-Length"];
+        }
+
+        return NATIVE_FETCH(originalInput, newInit);
+    }
+
     let hookInstalled = false;
     function overlaysNeedingHook() {
         const hasImage = config.overlays.some(
@@ -1048,6 +1208,22 @@
         const hookedFetch = async (input, init) => {
             const urlStr =
                 typeof input === "string" ? input : (input && input.url) || "";
+            const method = (init?.method || "GET").toUpperCase();
+
+            if (config.hijackRequests && method === "POST") {
+                const pixelPostMatch = urlStr.match(/\/s0\/pixel\/(\d+)\/(\d+)$/);
+                if (pixelPostMatch) {
+                    try {
+                        return await handleHijackedPixelPost(
+                            pixelPostMatch,
+                            input,
+                            init
+                        );
+                    } catch (e) {
+                        console.error("Hail's OP: Error during hijack", e);
+                    }
+                }
+            }
 
             if (config.autoCapturePixelUrl && config.activeOverlayId) {
                 const pixelMatch = matchPixelUrl(urlStr);
@@ -1200,6 +1376,8 @@
         collapseNudge: false,
         collapseColors: false,
         highlightPixels: false,
+        hijackRequests: false,
+        hijackPixelCount: 1,
 
         ccFreeKeys: DEFAULT_FREE_KEYS.slice(),
         ccPaidKeys: DEFAULT_PAID_KEYS.slice(),
@@ -1524,6 +1702,16 @@
                   <div class="op-row" style="padding: 4px 0;">
                       <input type="checkbox" id="op-highlight-toggle" style="margin-left: 4px;">
                       <label for="op-highlight-toggle" style="cursor:pointer;">Highlight pixels (pink)</label>
+                  </div>
+                   <div class="op-row space" style="padding: 4px 0;">
+                      <div>
+                          <input type="checkbox" id="op-hijack-toggle" style="margin-left: 4px;">
+                          <label for="op-hijack-toggle" style="cursor:pointer;">Hijack Requests</label>
+                      </div>
+                      <div class="op-row">
+                          <label for="op-pixel-count" class="op-muted">Pixel Count:</label>
+                          <input type="number" class="op-input" id="op-pixel-count" style="width: 60px;" min="1" step="1">
+                      </div>
                   </div>
               </div>
               <div class="op-section">
@@ -1931,6 +2119,19 @@
             config.highlightPixels = e.target.checked;
             await saveConfig(["highlightPixels"]);
             clearOverlayCache();
+        });
+
+        $("op-hijack-toggle").addEventListener("change", async (e) => {
+            config.hijackRequests = e.target.checked;
+            await saveConfig(["hijackRequests"]);
+            updateUI();
+        });
+        $("op-pixel-count").addEventListener("input", async (e) => {
+            const count = parseInt(e.target.value, 10);
+            if (Number.isFinite(count) && count > 0) {
+                config.hijackPixelCount = count;
+                await saveConfig(["hijackPixelCount"]);
+            }
         });
 
         $("op-add-overlay").addEventListener("click", async () => {
@@ -2460,6 +2661,18 @@
 
         const highlightToggle = $("op-highlight-toggle");
         if (highlightToggle) highlightToggle.checked = !!config.highlightPixels;
+
+        const hijackToggle = $("op-hijack-toggle");
+        if (hijackToggle) hijackToggle.checked = !!config.hijackRequests;
+        const pixelCountInput = $("op-pixel-count");
+        if (pixelCountInput)
+            pixelCountInput.value = config.hijackPixelCount || 1;
+        const hijackLabel = hijackToggle?.nextElementSibling;
+        if (hijackLabel)
+            hijackLabel.classList.toggle(
+                "op-danger-text",
+                !!config.hijackRequests
+            );
 
         const listWrap = $("op-list-wrap");
         const listCz = $("op-collapse-list");
