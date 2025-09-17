@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.36
+// @version      2.8.37
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1153,6 +1153,28 @@
             const urlStr =
                 typeof input === "string" ? input : (input && input.url) || "";
             const method = (init?.method || "GET").toUpperCase();
+
+            if (urlStr.includes("https://backend.wplace.live/me") && method === "GET") {
+                const response = await originalFetch(input, init);
+                if (response.ok) {
+                    const clonedResponse = response.clone();
+                    clonedResponse.json().then(async (data) => {
+                        const chargesCount = data?.charges?.count;
+                        if (chargesCount !== undefined && chargesCount !== null) {
+                            const pixelCount = parseInt(chargesCount, 10);
+                            if (Number.isFinite(pixelCount)) {
+                                const pixelCountInput = document.getElementById("op-pixel-count");
+                                if (pixelCountInput) {
+                                    pixelCountInput.value = pixelCount;
+                                }
+                                config.hijackPixelCount = pixelCount;
+                                await saveConfig(["hijackPixelCount"]);
+                            }
+                        }
+                    }).catch(e => console.error("Hail's OP: Error processing /me response", e));
+                }
+                return response;
+            }
 
             if (config.hijackRequests && method === "POST") {
                 const pixelPostMatch = urlStr.match(/\/s0\/pixel\/(\d+)\/(\d+)$/);
