@@ -1794,6 +1794,9 @@
                           <button class="op-color-btn" id="op-colors-none">None</button>
                           <button class="op-color-btn" id="op-colors-free">Free</button>
                           <button class="op-color-btn" id="op-colors-paid">Paid</button>
+                          <button class="op-color-btn" id="op-colors-smart" title="Select non-red colors that have errors">Smart</button>
+                      </div>
+                      <div class="op-button-group" style="gap: 6px; flex-wrap: wrap; margin-top: 6px;">
                           <button class="op-color-btn" id="op-colors-copy">Copy</button>
                       </div>
                       <div class="op-list" id="op-colors-list" style="max-height: 480px; gap: 4px;"></div>
@@ -2211,6 +2214,33 @@
             listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
                 cb.checked = paidKeys.has(cb.dataset.key);
             });
+        });
+
+        $("op-colors-smart").addEventListener("click", async () => {
+            const ov = getActiveOverlay();
+            if (!ov) return;
+
+            // Ensure we have color data; if empty, try refreshing once
+            if (!lastColorData || lastColorData.length === 0) {
+                await updateColorDistributionUI();
+            }
+
+            const redKeys = scanAndCollectPaidKeysFromButtons();
+            const keysToSelect = (lastColorData || [])
+                .filter((d) => (d.errorCount || 0) > 0 && !redKeys.has(d.key))
+                .map((d) => d.key);
+
+            ov.visibleColorKeys = keysToSelect;
+            await saveConfig(["overlays"]);
+            clearOverlayCache();
+
+            const set = new Set(keysToSelect);
+            const listEl = document.getElementById("op-colors-list");
+            if (listEl) {
+                listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+                    cb.checked = set.has(cb.dataset.key);
+                });
+            }
         });
 
         $("op-colors-copy").addEventListener("click", () => {
