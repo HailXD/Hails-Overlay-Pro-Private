@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.40
+// @version      2.8.41
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1795,6 +1795,7 @@
                           <button class="op-color-btn" id="op-colors-free">Free</button>
                           <button class="op-color-btn" id="op-colors-paid">Paid</button>
                           <button class="op-color-btn" id="op-colors-smart" title="Select non-red colors that have errors">Smart</button>
+                          <button class="op-color-btn" id="op-colors-sp" title="Smart paid (exclude free)">SP</button>
                       </div>
                       <div class="op-button-group" style="gap: 6px; flex-wrap: wrap; margin-top: 6px;">
                           <button class="op-color-btn" id="op-colors-copy">Copy</button>
@@ -2228,6 +2229,38 @@
             const redKeys = scanAndCollectPaidKeysFromButtons();
             const keysToSelect = (lastColorData || [])
                 .filter((d) => !redKeys.has(d.key))
+                .map((d) => d.key);
+
+            ov.visibleColorKeys = keysToSelect;
+            await saveConfig(["overlays"]);
+            clearOverlayCache();
+
+            const set = new Set(keysToSelect);
+            const listEl = document.getElementById("op-colors-list");
+            if (listEl) {
+                listEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+                    cb.checked = set.has(cb.dataset.key);
+                });
+            }
+        });
+
+        $("op-colors-sp").addEventListener("click", async () => {
+            const ov = getActiveOverlay();
+            if (!ov) return;
+
+            // Ensure we have color data; if empty, try refreshing once
+            if (!lastColorData || lastColorData.length === 0) {
+                await updateColorDistributionUI();
+            }
+
+            const redKeys = scanAndCollectPaidKeysFromButtons();
+            const paidKeys = new Set(
+                WPLACE_PAID.map(([r, g, b]) => `${r},${g},${b}`)
+            );
+
+            // Similar to Smart, but only include paid colors (exclude free)
+            const keysToSelect = (lastColorData || [])
+                .filter((d) => paidKeys.has(d.key) && !redKeys.has(d.key))
                 .map((d) => d.key);
 
             ov.visibleColorKeys = keysToSelect;
