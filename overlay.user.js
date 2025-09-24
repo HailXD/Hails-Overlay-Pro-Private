@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name         Hail's OP
 // @namespace    http://tampermonkey.net/
-// @version      2.8.41
+// @version      2.8.42
 // @author       shinkonet (Altered by Hail)
 // @match        https://wplace.live/*
 // @license      GPLv3
@@ -1790,12 +1790,12 @@
                   </div>
                   <div id="op-colors-body">
                       <div class="op-button-group" style="gap: 6px; flex-wrap: wrap;">
-                          <button class="op-color-btn" id="op-colors-all">All</button>
-                          <button class="op-color-btn" id="op-colors-none">None</button>
-                          <button class="op-color-btn" id="op-colors-free">Free</button>
-                          <button class="op-color-btn" id="op-colors-paid">Paid</button>
-                          <button class="op-color-btn" id="op-colors-smart" title="Select non-red colors that have errors">Smart</button>
-                          <button class="op-color-btn" id="op-colors-sp" title="Smart paid (exclude free)">SP</button>
+                          <button class="op-color-btn" id="op-colors-all">Al</button>
+                          <button class="op-color-btn" id="op-colors-none">No</button>
+                          <button class="op-color-btn" id="op-colors-free">Fr</button>
+                          <button class="op-color-btn" id="op-colors-paid">Pa</button>
+                          <button class="op-color-btn" id="op-colors-smart" title="Select non-red colors that have errors">Sm</button>
+                          <button class="op-color-btn" id="op-colors-sp" title="Smart paid (exclude free)">SmPa</button>
                       </div>
                       <div class="op-button-group" style="gap: 6px; flex-wrap: wrap; margin-top: 6px;">
                           <button class="op-color-btn" id="op-colors-copy">Copy</button>
